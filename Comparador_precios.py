@@ -76,7 +76,7 @@ if palabra_clave:
                 st.image(row["imagen"], caption=row["titulo"], width=150)
                 st.write(f"**Categoría:** {row['categoria']}")
                 st.write(f"**Supermercado:** {row['supermercado']}")
-                st.write(f"**Precio:** ${row['precios']}")
+                st.write(f"**Precio:** {row['precios']:.2f}€")
                 st.write("---")
 else:
     st.info("Escribe una palabra clave para buscar productos.")
