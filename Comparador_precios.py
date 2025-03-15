@@ -72,7 +72,7 @@ if palabra_clave:
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
             with cols[i % 4]:
                 with st.container():
-                    # Crear un recuadro con el botón dentro
+                    # Crear un recuadro con imagen, texto y botón dentro
                     st.markdown(
                         f"""
                         <div style="
@@ -81,38 +81,25 @@ if palabra_clave:
                             padding: 15px;
                             text-align: center;
                             background-color: #D0F1FF;
-                            min-height: 550px;
+                            min-height: 580px;
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
                             align-items: center;
                         ">
-                        """,
+                            <img src="{row['imagen']}" width="140" style="border-radius: 8px; max-width: 100%; margin-top: 10px;">
+                            <h3 style="font-size: 16px; color: black; margin: 10px 0;">{row['titulo']}</h3>
+                            <p style="color: black; font-size: 14px; text-align: center;">
+                                🏪 <b>Supermercado:</b> {row['supermercado']}<br>
+                                📂 <b>Categoría:</b> {row['categoria']}<br>
+                                💰 <b>Precio:</b> {row['precio']:.2f}€
+                            </p>
+                            <div style="width: 100%; margin-top: auto;">
+                    """,
                         unsafe_allow_html=True,
                     )
-
-                    # Imagen del producto
-                    st.image(row["imagen"], width=140)
-
-                    # Información del producto
-                    st.markdown(f"### {row['titulo']}", unsafe_allow_html=True)
-                    st.markdown(f"🏪 **Supermercado:** {row['supermercado']}")
-                    st.markdown(f"📂 **Categoría:** {row['categoria']}")
-                    st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
 
                     # Botón dentro del recuadro
-                    st.markdown(
-                        f"""
-                        <div style="
-                            width: 100%;
-                            display: flex;
-                            justify-content: center;
-                            margin-top: auto;
-                        ">
-                        """,
-                        unsafe_allow_html=True,
-                    )
-
                     if st.button(f"🛒 Agregar al Carrito", key=f"add_{i}"):
                         agregar_al_carrito(row.to_dict())
 
