@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import json
 import glob
 
@@ -71,14 +70,5 @@ if palabra_clave:
                 st.write(f"**Categoría:** {row['categoria']}")
                 st.write(f"**Precio:** ${row['precios']}")
                 st.write("---")
-        
-        # Gráfico de precios
-        fig, ax = plt.subplots()
-        ax.bar(df_filtrado["titulo"], df_filtrado["precios"], color='skyblue')
-        ax.set_ylabel("Precio ($)")
-        ax.set_xlabel("Producto")
-        ax.set_title(f"Comparación de precios para {palabra_clave}")
-        ax.tick_params(axis='x', rotation=90)
-        st.pyplot(fig)
 else:
     st.info("Escribe una palabra clave para buscar productos.")
