@@ -1,38 +1,42 @@
 import streamlit as st
 import pandas as pd
 import json
+import glob
 import os
 
-# 📂 RUTA DEL ARCHIVO JSON (Asegúrate que esté correcto)
-file_path = "/mnt/data/mercadona_2025-03-15.json"
+# Configurar la página
+st.set_page_config(page_title="Comparador de Precios", layout="wide")
 
-# 🔍 Verificar si el archivo JSON existe antes de leerlo
-if not os.path.exists(file_path):
-    st.error(f"❌ Archivo JSON no encontrado en la ruta: {file_path}")
-    st.stop()
-else:
-    st.success(f"✅ Archivo JSON encontrado en: {file_path}")
+# ---- TÍTULO ----
+st.markdown("<h1 style='text-align: center;'> 🛒 Comparador de Precios de Supermercados </h1>", unsafe_allow_html=True)
 
 # ---- CARGA DE DATOS ----
-st.write("📂 Cargando datos...")
+archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
 
-# 📦 Leer el JSON en partes para evitar problemas con archivos grandes
-data = []
-try:
-    with open(file_path, "r", encoding="utf-8") as file:
-        data = json.load(file)
-
-    # Convertir a DataFrame
-    df = pd.DataFrame(data)
-    st.success(f"✅ {df.shape[0]} productos cargados correctamente.")
-
-except json.JSONDecodeError:
-    st.error("❌ Error al cargar el archivo JSON. Verifica el formato del archivo.")
+if not archivos_json:
+    st.error("❌ No se encontraron archivos JSON.")
     st.stop()
 
-# ---- VERIFICACIONES ----
-if "supermercado" not in df.columns:
-    df["supermercado"] = "Desconocido"
+dataframes = []
+for archivo in archivos_json:
+    with open(archivo, "r", encoding="utf-8") as file:
+        data = json.load(file)
+        df_temp = pd.DataFrame(data)
+
+        # 🔹 Verificar si la columna "supermercado" existe en el JSON
+        if "supermercado" in df_temp.columns:
+            df_temp["supermercado"] = df_temp["supermercado"].fillna("Desconocido")  # Rellenar vacíos si hay
+        else:
+            df_temp["supermercado"] = "Desconocido"  # Asignar por defecto si falta la columna
+
+        dataframes.append(df_temp)
+
+# Unir todos los archivos en un solo DataFrame
+df = pd.concat(dataframes, ignore_index=True)
+
+# 🔹 Verificar si la columna tiene valores vacíos
+if df["supermercado"].isnull().sum() > 0 or df["supermercado"].eq("").sum() > 0:
+    st.warning("⚠️ Hay productos sin un supermercado asignado. Verifica los archivos JSON.")
 
 df["imagen"] = df["imagen"].fillna("https://via.placeholder.com/100")
 df["precio"] = pd.to_numeric(df["precio"], errors="coerce")
@@ -52,14 +56,20 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     categorias_unicas = ["Todas"] + sorted(df["categoria"].dropna().unique().tolist())
-    st.session_state.categoria_seleccionada = st.selectbox("📂 Selecciona una categoría:", categorias_unicas)
+    st.session_state.categoria_seleccionada = st.selectbox(
+        "📂 Selecciona una categoría:", categorias_unicas, 
+        index=categorias_unicas.index(st.session_state.categoria_seleccionada),
+    )
 
 if st.session_state.categoria_seleccionada != "Todas":
     df = df[df["categoria"] == st.session_state.categoria_seleccionada]
 
 with col2:
     titulos_unicos = ["Todos"] + sorted(df["titulo"].dropna().unique().tolist())
-    st.session_state.titulo_seleccionado = st.selectbox("🏷️ Selecciona un producto:", titulos_unicos)
+    st.session_state.titulo_seleccionado = st.selectbox(
+        "🏷️ Selecciona un producto:", titulos_unicos, 
+        index=titulos_unicos.index(st.session_state.titulo_seleccionado),
+    )
 
 if st.session_state.titulo_seleccionado != "Todos":
     df = df[df["titulo"] == st.session_state.titulo_seleccionado]
@@ -95,16 +105,26 @@ if not df.empty:
             with st.container():
                 st.markdown(
                     f"""
-                    <div style="border: 2px solid #32C3FF; border-radius: 10px; padding: 8px;
-                        text-align: center; background-color: #D0F1FF;">
-                        <img src="{row['imagen']}" width="100" style="border-radius: 6px;">
-                        <h3 style="font-size: 12px; color: black;">{row['titulo']}</h3>
+                    <div style="
+                        border: 2px solid #32C3FF;
+                        border-radius: 10px;
+                        padding: 8px;
+                        text-align: center;
+                        background-color: #D0F1FF;
+                        min-height: 380px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <img src="{row['imagen']}" width="100" style="border-radius: 6px; max-width: 100%; margin-top: 3px;">
+                        <h3 style="font-size: 12px; color: black; margin: 4px 0;">{row['titulo']}</h3>
                         <p style="color: black; font-size: 11px; text-align: center;">
                             🏪 <b>Supermercado:</b> {row['supermercado']}<br>
                             📂 <b>Categoría:</b> {row['categoria']}<br>
                             💰 <b>Precio:</b> {row['precio']:.2f}€
                         </p>
-                    </div>
+                        <div style="width: 100%; margin-top: auto;">
                     """,
                     unsafe_allow_html=True,
                 )
@@ -112,11 +132,12 @@ if not df.empty:
                 if st.button(f"🛒 Agregar al Carrito", key=f"add_{i}"):
                     agregar_al_carrito(row.to_dict())
 
+                st.markdown("</div></div>", unsafe_allow_html=True)
 else:
     st.warning("⚠️ No se encontraron productos con los filtros seleccionados.")
 
-# ---- LISTA DE COMPRA ----
-st.header("🛍️ Lista de Compra")
+# ---- LISTA DE COMPRA PARA IMPRIMIR ----
+st.header("🛍️ Lista de Compra para Imprimir")
 
 if not st.session_state.carrito:
     st.info("Tu carrito está vacío. Agrega productos para empezar.")
@@ -142,7 +163,7 @@ else:
 
     st.text_area("📜 Copia esta lista:", lista_compra_txt, height=300)
     st.download_button("📥 Descargar TXT", data=lista_compra_txt, file_name="lista_compra.txt", mime="text/plain")
-
+    
     if st.button("🛒 Vaciar Todo el Carrito"):
         st.session_state.carrito = []
         st.rerun()
