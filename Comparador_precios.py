@@ -72,7 +72,7 @@ if palabra_clave:
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
             with cols[i % 4]:
                 with st.container():
-                    # Crear un rectángulo con fondo personalizado y botón dentro
+                    # Crear un recuadro con el botón dentro
                     st.markdown(
                         f"""
                         <div style="
@@ -81,7 +81,7 @@ if palabra_clave:
                             padding: 15px;
                             text-align: center;
                             background-color: #D0F1FF;
-                            min-height: 520px;
+                            min-height: 550px;
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
@@ -100,12 +100,24 @@ if palabra_clave:
                     st.markdown(f"📂 **Categoría:** {row['categoria']}")
                     st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
 
-                    # Botón funcional de Streamlit dentro del recuadro
+                    # Botón dentro del recuadro
+                    st.markdown(
+                        f"""
+                        <div style="
+                            width: 100%;
+                            display: flex;
+                            justify-content: center;
+                            margin-top: auto;
+                        ">
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
                     if st.button(f"🛒 Agregar al Carrito", key=f"add_{i}"):
                         agregar_al_carrito(row.to_dict())
 
                     # Cerrar div
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    st.markdown("</div></div>", unsafe_allow_html=True)
     else:
         st.warning("⚠️ No se encontraron productos con esa palabra clave.")
 else:
