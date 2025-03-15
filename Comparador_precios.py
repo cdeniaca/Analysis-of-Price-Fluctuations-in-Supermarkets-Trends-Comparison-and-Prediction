@@ -50,21 +50,34 @@ df = df.dropna(subset=["precio"])
 # ---- FILTROS ----
 st.markdown("### 🎯 Filtrar productos:")
 
+# Filtros en columnas para mejor organización
+col1, col2, col3 = st.columns(3)
+
 # Filtro por Categoría
-categorias_unicas = ["Todas"] + sorted(df["categoria"].dropna().unique().tolist())
-categoria_seleccionada = st.selectbox("📂 Selecciona una categoría:", categorias_unicas)
+with col1:
+    categorias_unicas = ["Todas"] + sorted(df["categoria"].dropna().unique().tolist())
+    categoria_seleccionada = st.selectbox("📂 Selecciona una categoría:", categorias_unicas)
 
 # Filtrar por categoría si se selecciona una distinta de "Todas"
 if categoria_seleccionada != "Todas":
     df = df[df["categoria"] == categoria_seleccionada]
 
 # Filtro por Título (Producto)
-titulos_unicos = ["Todos"] + sorted(df["titulo"].dropna().unique().tolist())
-titulo_seleccionado = st.selectbox("🏷️ Selecciona un producto específico:", titulos_unicos)
+with col2:
+    titulos_unicos = ["Todos"] + sorted(df["titulo"].dropna().unique().tolist())
+    titulo_seleccionado = st.selectbox("🏷️ Selecciona un producto específico:", titulos_unicos)
 
 # Filtrar por producto si se selecciona uno distinto de "Todos"
 if titulo_seleccionado != "Todos":
     df = df[df["titulo"] == titulo_seleccionado]
+
+# Filtro de Búsqueda por Texto
+with col3:
+    palabra_clave = st.text_input("🔎 Escribe el nombre del producto:")
+
+# Aplicar búsqueda por texto si hay algo escrito
+if palabra_clave:
+    df = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
 
 # ---- SECCIÓN DEL CARRITO ----
 if "carrito" not in st.session_state:
