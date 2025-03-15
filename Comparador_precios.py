@@ -4,6 +4,9 @@ import json
 import glob
 import os
 
+# Configurar el título de la aplicación
+st.title('🛒 Comparador de Precios de Supermercados')
+
 # Buscar archivos JSON en la carpeta del repositorio
 archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
 
@@ -46,6 +49,10 @@ expected_columns = {"titulo", "precio", "categoria", "imagen"}
 if not expected_columns.issubset(df.columns):
     st.stop()
 
+# Reemplazar valores vacíos en la columna "imagen"
+placeholder_img = "https://via.placeholder.com/150"
+df["imagen"] = df["imagen"].fillna(placeholder_img)
+
 # Función para extraer el precio
 def extraer_precio(precio):
     if isinstance(precio, str):
@@ -60,6 +67,17 @@ def extraer_precio(precio):
 # Convertir precios a formato numérico y eliminar valores inválidos
 df["precio"] = df["precio"].apply(extraer_precio)
 df = df.dropna(subset=["precio"])
+
+# ---- SECCIÓN DEL CARRITO ----
+
+# Inicializar el carrito de compras en la sesión de Streamlit
+if "carrito" not in st.session_state:
+    st.session_state.carrito = []
+
+# Función para agregar productos al carrito
+def agregar_al_carrito(producto):
+    st.session_state.carrito.append(producto)
+    st.success(f"✅ {producto['titulo']} agregado al carrito.")
 
 # Buscar productos por palabra clave
 palabra_clave = st.text_input("🔍 Busca un producto por nombre", "")
@@ -81,6 +99,42 @@ if palabra_clave:
                     st.write(f"**Categoría:** {row['categoria']}")
                     st.write(f"**Supermercado:** {row['supermercado']}")
                     st.write(f"**Precio:** {row['precio']:.2f}€")
-                    st.write("---")
-    else:
-        st.warning("⚠️ No se encontraron productos con esa palabra clave.")
+                    if st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}"):
+                        agregar_al_carrito(row.to_dict())
+else:
+    st.info("💡 Escribe una palabra clave para buscar productos.")
+
+# ---- SECCIÓN DEL CARRITO ----
+
+st.header("🛍️ Tu Carrito de Compras")
+
+if not st.session_state.carrito:
+    st.info("Tu carrito está vacío. Agrega productos para empezar.")
+else:
+    # Organizar los productos en el carrito por supermercado
+    carrito_df = pd.DataFrame(st.session_state.carrito)
+    total_compra = carrito_df["precio"].sum()
+    
+    # Mostrar los productos organizados por supermercado
+    for supermercado in carrito_df["supermercado"].unique():
+        st.subheader(f"🏪 {supermercado}")
+        carrito_super = carrito_df[carrito_df["supermercado"] == supermercado]
+        for _, row in carrito_super.iterrows():
+            st.write(f"🛒 **{row['titulo']}** - {row['precio']:.2f}€")
+    
+    st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
+    
+    # Botón para imprimir la lista de compra
+    if st.button("🖨️ Imprimir Lista de Compra"):
+        lista_compra = "\n".join(
+            [
+                f"{row['titulo']} - {row['precio']:.2f}€ ({row['supermercado']})"
+                for _, row in carrito_df.iterrows()
+            ]
+        )
+        st.text_area("📋 Copia tu lista de compra:", lista_compra, height=200)
+
+    # Botón para vaciar el carrito
+    if st.button("🗑️ Vaciar Carrito"):
+        st.session_state.carrito = []
+        st.experimental_rerun()
