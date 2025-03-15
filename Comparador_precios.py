@@ -101,7 +101,7 @@ if palabra_clave:
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
             with cols[i % 4]:  # Asegurar estructura homogénea en 4 columnas
                 with st.container():
-                    # Crear un rectángulo uniforme con fondo personalizado
+                    # Crear un rectángulo uniforme con fondo personalizado y la imagen dentro
                     st.markdown(
                         f"""
                         <div style="
@@ -110,26 +110,22 @@ if palabra_clave:
                             padding: 15px;
                             text-align: center;
                             background-color: #D0F1FF;
-                            min-height: 450px;
+                            min-height: 500px;
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
                             align-items: center;
                         ">
+                            <img src="{row['imagen']}" width="140" style="border-radius: 8px; max-width: 100%; margin-top: 10px;">
+                            <h3 style="font-size: 16px; color: black;">{row['titulo']}</h3>
+                            <p style="color: black; font-size: 14px;">
+                                🏪 <b>Supermercado:</b> {row['supermercado']}<br>
+                                📂 <b>Categoría:</b> {row['categoria']}<br>
+                                💰 <b>Precio:</b> {row['precio']:.2f}€
+                            </p>
                         """,
                         unsafe_allow_html=True,
                     )
-
-                    # Imagen centrada arriba
-                    st.image(row["imagen"], width=140)
-
-                    # Nombre del producto
-                    st.markdown(f"### {row['titulo']}", unsafe_allow_html=True)
-
-                    # Información del producto
-                    st.markdown(f"🏪 **Supermercado:** {row['supermercado']}")
-                    st.markdown(f"📂 **Categoría:** {row['categoria']}")
-                    st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
 
                     # Botón funcional de Streamlit con color personalizado
                     if st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}"):
