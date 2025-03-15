@@ -1,125 +1,84 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 import json
 import glob
-import os
 
-# Título de la aplicación
+# Configurar el título de la aplicación
 st.title('🛒 Comparador de Precios de Supermercados')
 
-# 1. Buscar todos los archivos JSON
-json_files = glob.glob("*.json")
-if not json_files:
-    st.error("No se encontraron archivos JSON en la carpeta actual.")
+# Buscar archivo JSON con la fecha específica
+archivo_json = glob.glob("*2025-03-15.json")
+
+if not archivo_json:
+    st.error("No se encontró un archivo JSON con la fecha 2025-03-15. Verifica que el archivo esté en la carpeta correcta.")
     st.stop()
 
-# 2. Leer y combinar los archivos JSON, asignando la empresa desde el nombre del archivo
-data_list = []
-for file in json_files:
-    try:
-        with open(file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            # Extraer la parte antes del primer "_" para identificar la empresa
-            brand = os.path.basename(file).split("_")[0]
-            for item in data:
-                item["empresa"] = brand
-            data_list.extend(data)
-    except Exception as e:
-        st.error(f"Error leyendo {file}: {e}")
+# Cargar el archivo JSON encontrado
+try:
+    with open(archivo_json[0], "r", encoding="utf-8") as file:
+        data = json.load(file)
+except FileNotFoundError:
+    st.error("El archivo JSON no se encontró. Verifica que esté en la misma carpeta.")
+    st.stop()
+except json.JSONDecodeError:
+    st.error("Error al leer el archivo JSON. Verifica que tenga un formato válido.")
+    st.stop()
 
-df = pd.DataFrame(data_list)
+# Convertir datos a DataFrame
+df = pd.DataFrame(data)
 
-# Verificar que contenga las columnas esperadas (ajusta según tu formato)
-expected_columns = {"titulo", "precios", "categoria", "imagen", "link", "empresa"}
-missing_cols = expected_columns - set(df.columns)
-if missing_cols:
-    st.warning(f"Faltan columnas en el DataFrame: {missing_cols}. Ajusta tus archivos JSON o el código.")
+# Verificar columnas esperadas
+expected_columns = {"titulo", "precios", "categoria", "imagen"}
+if not expected_columns.issubset(df.columns):
+    st.error(f"El archivo debe contener las columnas: {expected_columns}")
+    st.stop()
 
-# Función para extraer el precio principal
+# Función para extraer el precio
 def extraer_precio(precio):
-    """
-    Se asume que 'precios' es una lista con al menos un elemento.
-    Ej: ["2.50", "2.45"] -> devolvemos 2.50 como float.
-    """
     if isinstance(precio, list) and len(precio) > 0:
         try:
             return float(precio[0])
-        except (ValueError, TypeError):
+        except ValueError:
             return None
     return None
 
-# Crear columna 'precio' y eliminar productos sin precio
-df["precio"] = df["precios"].apply(extraer_precio)
-df.dropna(subset=["precio"], inplace=True)
+# Convertir precios a formato numérico
+df["precios"] = df["precios"].apply(extraer_precio)
 
-# Ordenar el DataFrame por título
-df = df.sort_values("titulo")
+# Verificar valores nulos
+if df["precios"].isnull().values.any():
+    st.warning("El archivo contiene productos sin precio. Se recomienda limpiar los datos antes de continuar.")
+    df = df.dropna()
 
-# Muestra un conteo de productos por empresa (para confirmar que se cargaron)
-st.write("**Cantidad de productos por empresa:**")
-st.write(df["empresa"].value_counts())
+# Buscar productos por palabra clave
+palabra_clave = st.text_input("Busca un producto por nombre", "")
 
-# 3. Inicializar el carrito de compra en session_state
-if "cart" not in st.session_state:
-    st.session_state.cart = []
-
-# 4. Barra lateral: Carrito de Compra
-st.sidebar.title("Carrito de Compra")
-if st.sidebar.button("Ver carrito"):
-    if st.session_state.cart:
-        cart_df = pd.DataFrame(st.session_state.cart)
-        st.sidebar.write(cart_df)
-        total = cart_df["precio"].sum()
-        st.sidebar.write(f"**Total: ${total:.2f}**")
+if palabra_clave:
+    df_filtrado = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
+    
+    if df_filtrado.empty:
+        st.warning("No se encontraron productos con esa palabra clave.")
     else:
-        st.sidebar.write("El carrito está vacío.")
-
-# 5. Filtro por categoría (selectbox)
-st.subheader("Filtrar por Categoría")
-categorias_unicas = sorted(df["categoria"].dropna().unique().tolist())
-categoria_seleccionada = st.selectbox("Selecciona una categoría", categorias_unicas)
-
-# Filtrar DataFrame según la categoría elegida
-df_filtrado = df[df["categoria"] == categoria_seleccionada]
-if df_filtrado.empty:
-    st.error("No hay productos en la categoría seleccionada.")
-    st.stop()
-
-# 6. Desplegable de productos (según la categoría seleccionada)
-st.subheader("Selecciona un producto")
-productos_unicos = sorted(df_filtrado["titulo"].unique().tolist())
-producto_seleccionado = st.selectbox("Selecciona un producto", productos_unicos)
-
-# Filtrar por el producto elegido
-df_producto = df_filtrado[df_filtrado["titulo"] == producto_seleccionado]
-if df_producto.empty:
-    st.info("No se encontraron productos con ese criterio.")
+        # Mostrar productos en una cuadrícula de 3 en 3
+        st.write("### Comparación de precios")
+        df_filtrado = df_filtrado.sort_values(by="precios")
+        
+        cols = st.columns(3)  # Crear 3 columnas por fila
+        for i, (_, row) in enumerate(df_filtrado.iterrows()):
+            with cols[i % 3]:
+                st.image(row["imagen"], caption=row["titulo"], width=150)
+                st.write(f"**Categoría:** {row['categoria']}")
+                st.write(f"**Precio:** ${row['precios']}")
+                st.write("---")
+        
+        # Gráfico de precios
+        fig, ax = plt.subplots()
+        ax.bar(df_filtrado["titulo"], df_filtrado["precios"], color='skyblue')
+        ax.set_ylabel("Precio ($)")
+        ax.set_xlabel("Producto")
+        ax.set_title(f"Comparación de precios para {palabra_clave}")
+        ax.tick_params(axis='x', rotation=90)
+        st.pyplot(fig)
 else:
-    st.write("### Productos encontrados")
-    df_producto = df_producto.sort_values("precio")
-
-    # Mostrar cada producto con su imagen, empresa, precio, etc.
-    for index, row in df_producto.iterrows():
-        col1, col2 = st.columns([1,3])
-        with col1:
-            st.image(row["imagen"], width=100)
-        with col2:
-            st.markdown(f"**{row['titulo']}**")
-            st.markdown(f"Empresa: {row['empresa']}")
-            st.markdown(f"Categoría: {row['categoria']}")
-            st.markdown(f"Precio: ${row['precio']:.2f}")
-            if "link" in row and pd.notna(row["link"]):
-                st.markdown(f"[Ver producto]({row['link']})")
-            # Botón para añadir al carrito
-            if st.button("Añadir al carrito", key=f"cart_{index}"):
-                st.session_state.cart.append({
-                    "titulo": row["titulo"],
-                    "empresa": row["empresa"],
-                    "precio": row["precio"],
-                    "categoria": row["categoria"],
-                    "link": row.get("link", ""),
-                    "imagen": row["imagen"]
-                })
-                st.success("Producto añadido al carrito")
-
-   
+    st.info("Escribe una palabra clave para buscar productos.")
