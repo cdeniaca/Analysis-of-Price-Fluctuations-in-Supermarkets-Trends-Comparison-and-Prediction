@@ -12,11 +12,12 @@ st.set_page_config(page_title="Comparador de Precios", layout="wide")
 st.markdown("<h1 style='text-align: center;'> 🛒 Comparador de Precios de Supermercados </h1>", unsafe_allow_html=True)
 
 # ---- CARGA DE DATOS ----
-file_path = "/mnt/data/_2025-03-15_merged.json"
+file_path = "_2025-03-15_merged.json"  # Asegúrate de que el nombre es correcto
 if os.path.exists(file_path):
     st.write("✅ Archivo encontrado")
 else:
     st.write("❌ Archivo NO encontrado")
+
 
 dataframes = []
 for archivo in archivos_json:
