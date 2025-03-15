@@ -8,7 +8,7 @@ import os
 st.title('🛒 Comparador de Precios de Supermercados')
 
 # Buscar archivos JSON con la fecha específica
-archivos_json = glob.glob("*2025-03-15.json")
+archivos_json = glob.glob("merged.json")
 
 if not archivos_json:
     st.error("No se encontraron archivos JSON con la fecha 2025-03-15. Verifica que los archivos estén en la carpeta correcta.")
