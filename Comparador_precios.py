@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import glob
+import os
 
 # Configurar el título de la aplicación
 st.title('🛒 Comparador de Precios de Supermercados')
@@ -22,7 +23,7 @@ for archivo in archivos_json:
         with open(archivo, "r", encoding="utf-8") as file:
             data = json.load(file)
             df_temp = pd.DataFrame(data)
-            df_temp["supermercado"] = archivo.split("_")[0]  # Extraer el nombre del supermercado
+            df_temp["supermercado"] = os.path.basename(archivo).split("_")[0]  # Extraer correctamente el nombre del supermercado
             dataframes.append(df_temp)
     except (FileNotFoundError, json.JSONDecodeError):
         st.error(f"Error al leer el archivo {archivo}. Verifica que tenga un formato válido.")
