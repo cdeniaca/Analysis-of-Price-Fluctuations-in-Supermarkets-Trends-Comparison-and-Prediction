@@ -22,30 +22,30 @@ dataframes = []
 for archivo in archivos_json:
     with open(archivo, "r", encoding="utf-8") as file:
         try:
-            json_content = file.read()  # Leer el JSON original
-            json_cleaned = re.sub(r",\s*([\]}])", r"\1", json_content)  # Eliminar comas extra
-            data = json.loads(json_cleaned)  # Cargar JSON corregido
+            json_content = file.read()
+            json_cleaned = re.sub(r",\s*([\]}])", r"\1", json_content)
+            data = json.loads(json_cleaned)
             df_temp = pd.DataFrame(data)
 
-            # Asegurar que la columna "supermercado" no esté vacía
-            df_temp["supermercado"] = df_temp["supermercado"].fillna("Desconocido")
+            # 🏪 Asegurar que la columna "supermercado" no esté vacía
+            df_temp["supermercado"] = df_temp.get("supermercado", "Desconocido").fillna("Desconocido")
 
-            # Extraer correctamente el precio numérico
+            # 💰 Extraer correctamente el precio
             def extraer_precio(precio):
                 if isinstance(precio, str):
-                    precio = precio.split("€")[0]  # Quitar "€" y posibles unidades
-                    precio = precio.replace(",", ".")  # Cambiar coma por punto
+                    precio = re.sub(r"[^\d,\.]", "", precio)  # Eliminar caracteres no numéricos
+                    precio = precio.replace(",", ".")  # Convertir comas en puntos
                     try:
-                        return float(precio.strip())  # Convertir a número
+                        return float(precio)  # Convertir a número
                     except ValueError:
                         return None
                 return precio
 
             df_temp["precio"] = df_temp["precio"].apply(extraer_precio)
 
-            # Corregir imágenes no disponibles
+            # 🖼️ Manejo de imágenes
             df_temp["imagen"] = df_temp["imagen"].apply(
-                lambda x: x if x and "no disponible" not in x.lower() else "https://via.placeholder.com/100"
+                lambda x: x if isinstance(x, str) and "http" in x else "https://via.placeholder.com/100"
             )
 
             dataframes.append(df_temp)
@@ -53,19 +53,19 @@ for archivo in archivos_json:
         except json.JSONDecodeError:
             st.warning(f"⚠️ Error al leer el archivo {archivo}. Verifica su formato.")
 
-# Unir los datos corregidos
-if dataframes:
-    df = pd.concat(dataframes, ignore_index=True)
-else:
+# 📦 Unir los datos
+df_original = pd.concat(dataframes, ignore_index=True) if dataframes else pd.DataFrame()
+
+if df_original.empty:
     st.error("❌ No se pudo cargar ningún archivo JSON válido.")
     st.stop()
 
 # ---- FILTROS ----
 st.markdown("### 🎯 Filtrar productos:")
 
-# Mostrar la cantidad de productos cargados antes de filtros
-st.write(f"📊 **Productos totales disponibles:** {df.shape[0]}")
+st.write(f"📊 **Productos totales disponibles:** {df_original.shape[0]}")
 
+# Variables de estado
 if "categoria_seleccionada" not in st.session_state:
     st.session_state.categoria_seleccionada = "Todas"
 if "titulo_seleccionado" not in st.session_state:
@@ -73,24 +73,21 @@ if "titulo_seleccionado" not in st.session_state:
 if "palabra_clave" not in st.session_state:
     st.session_state.palabra_clave = ""
 
+# Aplicar filtros en una copia para no modificar df_original
+df = df_original.copy()
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
     categorias_unicas = ["Todas"] + sorted(df["categoria"].dropna().unique().tolist())
-    st.session_state.categoria_seleccionada = st.selectbox(
-        "📂 Selecciona una categoría:", categorias_unicas, 
-        index=categorias_unicas.index(st.session_state.categoria_seleccionada),
-    )
+    st.session_state.categoria_seleccionada = st.selectbox("📂 Selecciona una categoría:", categorias_unicas)
 
 if st.session_state.categoria_seleccionada != "Todas":
     df = df[df["categoria"] == st.session_state.categoria_seleccionada]
 
 with col2:
     titulos_unicos = ["Todos"] + sorted(df["titulo"].dropna().unique().tolist())
-    st.session_state.titulo_seleccionado = st.selectbox(
-        "🏷️ Selecciona un producto:", titulos_unicos, 
-        index=titulos_unicos.index(st.session_state.titulo_seleccionado),
-    )
+    st.session_state.titulo_seleccionado = st.selectbox("🏷️ Selecciona un producto:", titulos_unicos)
 
 if st.session_state.titulo_seleccionado != "Todos":
     df = df[df["titulo"] == st.session_state.titulo_seleccionado]
@@ -101,10 +98,8 @@ with col3:
 if st.session_state.palabra_clave:
     df = df[df["titulo"].str.contains(st.session_state.palabra_clave, case=False, na=False)]
 
-# Mostrar la cantidad de productos después de aplicar filtros
 st.write(f"📊 **Productos después de filtros:** {df.shape[0]}")
 
-st.markdown("####")
 if st.button("🧹 Borrar Filtros"):
     st.session_state.categoria_seleccionada = "Todas"
     st.session_state.titulo_seleccionado = "Todos"
@@ -126,38 +121,35 @@ if not df.empty:
 
     for i, (_, row) in enumerate(df.iterrows()):
         with cols[i % 4]:
-            with st.container():
-                st.image(row["imagen"], width=100)
-                st.write(f"**{row['titulo']}**")
-                st.write(f"🏪 {row['supermercado']} | 📂 {row['categoria']}")
-                st.write(f"💰 **{row['precio']:.2f}€**")
-                if st.button(f"🛒 Agregar", key=f"add_{i}"):
-                    agregar_al_carrito(row.to_dict())
+            st.markdown(
+                f"""
+                <div style="border: 2px solid #32C3FF; border-radius: 10px; padding: 10px;
+                            background-color: #D0F1FF; text-align: center;">
+                    <img src="{row['imagen']}" width="100"><br>
+                    <b>{row['titulo']}</b><br>
+                    🏪 {row['supermercado']} | 📂 {row['categoria']}<br>
+                    💰 <b>{row['precio']:.2f}€</b><br><br>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if st.button(f"🛒 Agregar", key=f"add_{i}"):
+                agregar_al_carrito(row.to_dict())
 
 else:
     st.warning("⚠️ No se encontraron productos con los filtros seleccionados.")
 
 # ---- LISTA DE COMPRA ----
-st.header("🛍️ Lista de Compra para Imprimir")
+st.header("🛍️ Lista de Compra")
 
 if not st.session_state.carrito:
     st.info("Tu carrito está vacío. Agrega productos para empezar.")
 else:
-    carrito_df = pd.DataFrame(st.session_state.carrito)
-    total_compra = carrito_df["precio"].sum()
+    total_compra = sum(p["precio"] for p in st.session_state.carrito)
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
 
-    lista_compra_txt = "🛒 **Lista de Compra**\n\n"
-    for supermercado in carrito_df["supermercado"].unique():
-        lista_compra_txt += f"🏪 {supermercado}\n" + "-" * len(supermercado) + "\n"
-        productos_super = carrito_df[carrito_df["supermercado"] == supermercado]
-        for _, row in productos_super.iterrows():
-            lista_compra_txt += f"  [ ] {row['titulo']} - {row['precio']:.2f}€\n"
-        lista_compra_txt += "\n"
+    st.download_button("📥 Descargar Lista", data=json.dumps(st.session_state.carrito, indent=4), file_name="lista_compra.json", mime="application/json")
 
-    st.text_area("📜 Copia esta lista:", lista_compra_txt, height=300)
-    st.download_button("📥 Descargar TXT", data=lista_compra_txt, file_name="lista_compra.txt", mime="text/plain")
-
-    if st.button("🛒 Vaciar Todo el Carrito"):
+    if st.button("🛒 Vaciar Carrito"):
         st.session_state.carrito = []
         st.rerun()
