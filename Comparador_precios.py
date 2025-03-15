@@ -4,24 +4,12 @@ import json
 import glob
 import os
 
-# Configurar el título de la aplicación
-st.title('🛒 Comparador de Precios de Supermercados')
-
-# Verificar el directorio actual
-st.write(f"📂 Directorio de trabajo actual: `{os.getcwd()}`")
-
-# Listar archivos disponibles en el directorio actual
-archivos_disponibles = os.listdir("./")
-st.write("📂 Archivos en el repositorio:", archivos_disponibles)
-
 # Buscar archivos JSON en la carpeta del repositorio
 archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
 
 if not archivos_json:
-    st.error("❌ No se encontraron archivos JSON con la fecha 2025-03-15 en el repositorio.")
+    st.error("❌ No se encontraron archivos JSON con la fecha 2025-03-15.")
     st.stop()
-
-st.write(f"✅ Archivos encontrados: {archivos_json}")
 
 # Lista para almacenar los datos combinados
 dataframes = []
@@ -39,18 +27,15 @@ for archivo in archivos_json:
             elif "precio" in df_temp.columns:
                 df_temp["precio"] = df_temp["precio"]
             else:
-                st.warning(f"⚠️ El archivo {archivo} no contiene una columna de precios válida.")
-                continue
+                continue  # Ignorar archivos sin precios
 
             # Extraer el nombre del supermercado desde el archivo
-            nombre_archivo = os.path.basename(archivo)
-            supermercado_nombre = nombre_archivo.split("_")[0]
+            supermercado_nombre = os.path.basename(archivo).split("_")[0]
             df_temp["supermercado"] = supermercado_nombre
 
             dataframes.append(df_temp)
 
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        st.error(f"⚠️ Error al leer el archivo {archivo}: {e}")
+    except (FileNotFoundError, json.JSONDecodeError):
         st.stop()
 
 # Concatenar los datos en un solo DataFrame
@@ -59,12 +44,11 @@ df = pd.concat(dataframes, ignore_index=True)
 # Verificar columnas esperadas
 expected_columns = {"titulo", "precio", "categoria", "imagen"}
 if not expected_columns.issubset(df.columns):
-    st.error(f"⚠️ El archivo debe contener las columnas: {expected_columns}")
     st.stop()
 
 # Función para extraer el precio
 def extraer_precio(precio):
-    if isinstance(precio, str):  # Para precios en formato texto con símbolos
+    if isinstance(precio, str):
         try:
             return float(precio.replace("€", "").replace(",", ".").split(" ")[0])
         except ValueError:
@@ -73,10 +57,8 @@ def extraer_precio(precio):
         return float(precio)
     return None
 
-# Convertir precios a formato numérico
+# Convertir precios a formato numérico y eliminar valores inválidos
 df["precio"] = df["precio"].apply(extraer_precio)
-
-# Eliminar filas con precios inválidos
 df = df.dropna(subset=["precio"])
 
 # Buscar productos por palabra clave
@@ -85,19 +67,14 @@ palabra_clave = st.text_input("🔍 Busca un producto por nombre", "")
 if palabra_clave:
     df_filtrado = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
     
-    if df_filtrado.empty:
-        st.warning("⚠️ No se encontraron productos con esa palabra clave.")
-    else:
-        # Mostrar productos en una tabla si hay más de 10 resultados
+    if not df_filtrado.empty:
+        # Mostrar productos en tabla si hay más de 10 resultados
         if len(df_filtrado) > 10:
-            st.write("### 📋 Comparación de precios en tabla")
             st.dataframe(df_filtrado[["titulo", "supermercado", "categoria", "precio"]].sort_values(by="precio"))
         else:
             # Mostrar productos con imágenes si hay pocos resultados
-            st.write("### 🏷️ Comparación de precios con imágenes")
             df_filtrado = df_filtrado.sort_values(by="precio")
-            
-            cols = st.columns(3)  # Crear 3 columnas por fila
+            cols = st.columns(3)
             for i, (_, row) in enumerate(df_filtrado.iterrows()):
                 with cols[i % 3]:
                     st.image(row["imagen"], caption=row["titulo"], width=150)
@@ -105,5 +82,5 @@ if palabra_clave:
                     st.write(f"**Supermercado:** {row['supermercado']}")
                     st.write(f"**Precio:** {row['precio']:.2f}€")
                     st.write("---")
-else:
-    st.info("💡 Escribe una palabra clave para buscar productos.")
+    else:
+        st.warning("⚠️ No se encontraron productos con esa palabra clave.")
