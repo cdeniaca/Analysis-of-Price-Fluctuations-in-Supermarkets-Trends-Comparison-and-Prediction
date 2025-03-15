@@ -132,8 +132,8 @@ if not df.empty:
 else:
     st.warning("⚠️ No se encontraron productos con los filtros seleccionados.")
 
-# ---- WISHLIST CON CHECKBOX ----
-st.header("🛍️ Mi Lista de la Compra")
+# ---- LISTA DE COMPRA PARA IMPRIMIR ----
+st.header("🛍️ Lista de Compra para Imprimir")
 
 if not st.session_state.carrito:
     st.info("Tu carrito está vacío. Agrega productos para empezar.")
@@ -143,35 +143,48 @@ else:
 
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
 
-    productos_comprados = st.session_state.get("productos_comprados", {})
+    # 📜 Formato imprimible con [ ] casillas vacías
+    lista_compra_txt = "🛒 **Lista de Compra**\n\n"
+    lista_compra_json = {}
 
     for supermercado in carrito_df["supermercado"].unique():
-        st.subheader(f"🏪 {supermercado}")
+        lista_compra_txt += f"🏪 {supermercado}\n"
+        lista_compra_json[supermercado] = {}
 
         productos_super = carrito_df[carrito_df["supermercado"] == supermercado]
         for categoria in productos_super["categoria"].unique():
-            st.markdown(f"**📂 {categoria}**")
+            lista_compra_txt += f"  📂 {categoria}\n"
+            lista_compra_json[supermercado][categoria] = []
+
             productos_cat = productos_super[productos_super["categoria"] == categoria]
-
             for _, row in productos_cat.iterrows():
-                producto_id = f"{supermercado}_{categoria}_{row['titulo']}"
-                if producto_id not in productos_comprados:
-                    productos_comprados[producto_id] = False
-                
-                productos_comprados[producto_id] = st.checkbox(
-                    f"✅ {row['titulo']} - {row['precio']:.2f}€",
-                    value=productos_comprados[producto_id],
-                    key=producto_id
-                )
+                lista_compra_txt += f"    [ ] {row['titulo']} - {row['precio']:.2f}€\n"
+                lista_compra_json[supermercado][categoria].append({
+                    "producto": row["titulo"],
+                    "precio": row["precio"]
+                })
 
-    st.session_state.productos_comprados = productos_comprados
+        lista_compra_txt += "\n"
 
-    if st.button("🗑️ Eliminar productos comprados"):
-        st.session_state.carrito = [
-            item for item in st.session_state.carrito
-            if not productos_comprados[f"{item['supermercado']}_{item['categoria']}_{item['titulo']}"]
-        ]
-        st.rerun()
+    # Mostrar la lista en la interfaz
+    st.text_area("📜 Copia esta lista:", lista_compra_txt, height=300)
+
+    # 📥 Descargar TXT
+    st.download_button(
+        label="📥 Descargar Lista de Compra (TXT)",
+        data=lista_compra_txt,
+        file_name="lista_compra.txt",
+        mime="text/plain"
+    )
+
+    # 📥 Descargar JSON
+    lista_compra_json_str = json.dumps(lista_compra_json, indent=4, ensure_ascii=False)
+    st.download_button(
+        label="📥 Descargar Lista de Compra (JSON)",
+        data=lista_compra_json_str,
+        file_name="lista_compra.json",
+        mime="application/json"
+    )
 
     if st.button("🛒 Vaciar Todo el Carrito"):
         st.session_state.carrito = []
