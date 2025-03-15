@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import glob
 import os
+from fpdf import FPDF
 
 # Configurar la página
 st.set_page_config(page_title="Comparador de Precios", layout="wide")
@@ -143,49 +144,28 @@ else:
 
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
 
-    # 📜 Formato imprimible con [ ] casillas vacías
-    lista_compra_txt = "🛒 **Lista de Compra**\n\n"
-    lista_compra_json = {}
+    lista_compra_txt = "**🛒 Lista de Compra**\n\n"
+    lista_compra_pdf = FPDF()
+    lista_compra_pdf.set_auto_page_break(auto=True, margin=15)
+    lista_compra_pdf.add_page()
+    lista_compra_pdf.set_font("Arial", style="B", size=16)
+    lista_compra_pdf.cell(200, 10, "🛒 Lista de Compra", ln=True, align="C")
+    lista_compra_pdf.ln(10)
 
     for supermercado in carrito_df["supermercado"].unique():
-        lista_compra_txt += f"🏪 {supermercado}\n"
-        lista_compra_json[supermercado] = {}
+        lista_compra_txt += f"🏪 **{supermercado}**\n"
+        lista_compra_pdf.set_font("Arial", style="B", size=14)
+        lista_compra_pdf.cell(0, 10, f"🏪 {supermercado}", ln=True)
+        lista_compra_pdf.ln(5)
 
         productos_super = carrito_df[carrito_df["supermercado"] == supermercado]
         for categoria in productos_super["categoria"].unique():
-            lista_compra_txt += f"  📂 {categoria}\n"
-            lista_compra_json[supermercado][categoria] = []
+            lista_compra_txt += f"  📂 *{categoria}*\n"
+            lista_compra_pdf.set_font("Arial", style="B", size=12)
+            lista_compra_pdf.cell(0, 8, f"📂 {categoria}", ln=True)
+            lista_compra_pdf.ln(3)
 
-            productos_cat = productos_super[productos_super["categoria"] == categoria]
-            for _, row in productos_cat.iterrows():
+            for _, row in productos_super[productos_super["categoria"] == categoria].iterrows():
                 lista_compra_txt += f"    [ ] {row['titulo']} - {row['precio']:.2f}€\n"
-                lista_compra_json[supermercado][categoria].append({
-                    "producto": row["titulo"],
-                    "precio": row["precio"]
-                })
 
-        lista_compra_txt += "\n"
-
-    # Mostrar la lista en la interfaz
-    st.text_area("📜 Copia esta lista:", lista_compra_txt, height=300)
-
-    # 📥 Descargar TXT
-    st.download_button(
-        label="📥 Descargar Lista de Compra (TXT)",
-        data=lista_compra_txt,
-        file_name="lista_compra.txt",
-        mime="text/plain"
-    )
-
-    # 📥 Descargar JSON
-    lista_compra_json_str = json.dumps(lista_compra_json, indent=4, ensure_ascii=False)
-    st.download_button(
-        label="📥 Descargar Lista de Compra (JSON)",
-        data=lista_compra_json_str,
-        file_name="lista_compra.json",
-        mime="application/json"
-    )
-
-    if st.button("🛒 Vaciar Todo el Carrito"):
-        st.session_state.carrito = []
-        st.rerun()
+    st.download_button(label="📥 Descargar PDF", data=lista_compra_pdf.output(dest="S").encode("latin1"), file_name="lista_compra.pdf", mime="application/pdf")
