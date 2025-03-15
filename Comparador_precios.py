@@ -37,7 +37,7 @@ if not expected_columns.issubset(df.columns):
     st.stop()
 
 # Reemplazar valores vacíos en la columna "imagen"
-placeholder_img = "https://via.placeholder.com/150"
+placeholder_img = "https://via.placeholder.com/100"
 df["imagen"] = df["imagen"].fillna(placeholder_img)
 
 # Asegurar que la columna "supermercado" no esté vacía
@@ -72,24 +72,24 @@ if palabra_clave:
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
             with cols[i % 4]:
                 with st.container():
-                    # Crear un recuadro más pequeño con imagen, texto y botón dentro
+                    # Crear un recuadro aún más pequeño con imagen, texto y botón dentro
                     st.markdown(
                         f"""
                         <div style="
                             border: 2px solid #32C3FF;
-                            border-radius: 12px;
-                            padding: 10px;
+                            border-radius: 10px;
+                            padding: 8px;
                             text-align: center;
                             background-color: #D0F1FF;
-                            min-height: 450px;
+                            min-height: 380px;
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
                             align-items: center;
                         ">
-                            <img src="{row['imagen']}" width="120" style="border-radius: 8px; max-width: 100%; margin-top: 5px;">
-                            <h3 style="font-size: 14px; color: black; margin: 5px 0;">{row['titulo']}</h3>
-                            <p style="color: black; font-size: 12px; text-align: center;">
+                            <img src="{row['imagen']}" width="100" style="border-radius: 6px; max-width: 100%; margin-top: 3px;">
+                            <h3 style="font-size: 12px; color: black; margin: 4px 0;">{row['titulo']}</h3>
+                            <p style="color: black; font-size: 11px; text-align: center;">
                                 🏪 <b>Supermercado:</b> {row['supermercado']}<br>
                                 📂 <b>Categoría:</b> {row['categoria']}<br>
                                 💰 <b>Precio:</b> {row['precio']:.2f}€
@@ -129,7 +129,7 @@ else:
         for i, (_, row) in enumerate(carrito_super.iterrows()):
             with cols[i % 4]:
                 with st.container():
-                    st.image(row["imagen"], caption=row["titulo"], width=120)
+                    st.image(row["imagen"], caption=row["titulo"], width=100)
                     st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
 
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
@@ -139,7 +139,7 @@ else:
         lista_compra = "\n".join(
             [f"{row['titulo']} - {row['precio']:.2f}€ ({row['supermercado']})" for _, row in carrito_df.iterrows()]
         )
-        st.text_area("📋 Copia tu lista de compra:", lista_compra, height=200)
+        st.text_area("📋 Copia tu lista de compra:", lista_compra, height=150)
 
     # Botón para vaciar el carrito
     if st.button("🗑️ Vaciar Carrito"):
