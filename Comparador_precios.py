@@ -4,8 +4,11 @@ import json
 import glob
 import os
 
-# Configurar el título de la aplicación
-st.title('🛒 Comparador de Precios de Supermercados')
+# Configurar el diseño de la página para ocupar más espacio
+st.set_page_config(page_title="Comparador de Precios", layout="wide")
+
+# Configurar el título de la aplicación con emojis y estilo
+st.markdown("<h1 style='text-align: center;'> 🛒 Comparador de Precios de Supermercados </h1>", unsafe_allow_html=True)
 
 # Buscar archivos JSON en la carpeta del repositorio
 archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
@@ -83,23 +86,24 @@ def agregar_al_carrito(producto):
     st.success(f"✅ {producto['titulo']} agregado al carrito.")
 
 # Buscar productos por palabra clave
-palabra_clave = st.text_input("🔍 Busca un producto por nombre", "")
+st.markdown("### 🔎 Busca un producto por nombre:")
+palabra_clave = st.text_input("", "")
 
 if palabra_clave:
     df_filtrado = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
     
     if not df_filtrado.empty:
-        st.write("### 🏷️ Productos encontrados:")
+        st.markdown("### 🏷️ Productos encontrados:")
 
         df_filtrado = df_filtrado.sort_values(by="precio")
-        cols = st.columns(3)  # Crear 3 columnas por fila para la cuadrícula
+        cols = st.columns(4)  # Expandimos la cuadrícula a 4 columnas
 
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
-            with cols[i % 3]:  # Asegurar estructura homogénea
+            with cols[i % 4]:  # Asegurar estructura homogénea en 4 columnas
                 with st.container():
-                    st.image(row["imagen"], caption=row["titulo"], width=150)
+                    st.image(row["imagen"], caption=row["titulo"], width=180)
 
-                    # Hacer que los textos tengan el mismo tamaño y formato
+                    # Asegurar alineación de textos
                     st.markdown(f"### {row['titulo']}", unsafe_allow_html=True)
                     st.markdown(f"🏪 **Supermercado:** {row['supermercado']}", unsafe_allow_html=True)
                     st.markdown(f"📂 **Categoría:** {row['categoria']}", unsafe_allow_html=True)
@@ -126,12 +130,12 @@ else:
     for supermercado in carrito_df["supermercado"].unique():
         st.subheader(f"🏪 {supermercado}")
         carrito_super = carrito_df[carrito_df["supermercado"] == supermercado]
-        cols = st.columns(3)  # Mostrar en 3 columnas
+        cols = st.columns(4)  # Expandimos la cuadrícula a 4 columnas
 
         for i, (_, row) in enumerate(carrito_super.iterrows()):
-            with cols[i % 3]:
+            with cols[i % 4]:
                 with st.container():
-                    st.image(row["imagen"], caption=row["titulo"], width=120)
+                    st.image(row["imagen"], caption=row["titulo"], width=140)
                     st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
 
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
