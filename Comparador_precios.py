@@ -11,7 +11,7 @@ st.set_page_config(page_title="Comparador de Precios", layout="wide")
 st.markdown("<h1 style='text-align: center;'> 🛒 Comparador de Precios de Supermercados </h1>", unsafe_allow_html=True)
 
 # ---- CARGA DE DATOS ----
-archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
+archivos_json = glob.glob(os.path.join("./", "*supermercados_merged.json"))
 
 if not archivos_json:
     st.error("❌ No se encontraron archivos JSON.")
