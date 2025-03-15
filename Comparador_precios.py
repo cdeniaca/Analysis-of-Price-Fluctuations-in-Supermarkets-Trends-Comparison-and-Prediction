@@ -20,18 +20,24 @@ for file in json_files:
     try:
         with open(file, "r", encoding="utf-8") as f:
             data = json.load(f)
-            data_list.extend(data)  # Agregar todos los productos a la lista
+            # Extraer el nombre de la empresa (hasta el primer "_")
+            brand = os.path.basename(file).split("_")[0]
+            # Añadir la columna "empresa" a cada producto
+            for item in data:
+                item["empresa"] = brand
+            data_list.extend(data)
     except Exception as e:
         st.error(f"Error leyendo {file}: {e}")
 
+# 3. Convertir la lista de datos en DataFrame
 df = pd.DataFrame(data_list)
 
-# 3. Verificar columnas esperadas
-expected_columns = {"titulo", "precios", "categoria", "imagen", "link"}
+# Verificar columnas esperadas (ajusta según tus datos)
+expected_columns = {"titulo", "precios", "categoria", "imagen", "link", "empresa"}
 missing_cols = expected_columns - set(df.columns)
 if missing_cols:
-    st.warning(f"Faltan columnas en el DataFrame: {missing_cols}. Ajusta tu código o tus archivos JSON.")
-    # Si faltan columnas críticas, podrías hacer stop:
+    st.warning(f"Faltan columnas en el DataFrame: {missing_cols}. Ajusta tus archivos JSON o el código.")
+    # Si son columnas críticas, podrías detener la app:
     # st.stop()
 
 # 4. Función para extraer el precio principal (si 'precios' es una lista)
@@ -47,18 +53,18 @@ def extraer_precio(precio):
             return None
     return None
 
-# 5. Crear columna 'precio' con formato numérico y eliminar productos sin precio
+# Crear columna 'precio' con formato numérico y eliminar productos sin precio
 df["precio"] = df["precios"].apply(extraer_precio)
 df.dropna(subset=["precio"], inplace=True)
 
 # Ordenar el DataFrame por título (para el selectbox)
 df = df.sort_values("titulo")
 
-# 6. Inicializar el carrito de compra en session_state
+# 5. Inicializar el carrito de compra en session_state
 if "cart" not in st.session_state:
     st.session_state.cart = []
 
-# 7. Barra lateral (sidebar) para el carrito
+# 6. Barra lateral (sidebar) para el carrito
 st.sidebar.title("Carrito de Compra")
 
 # Botón para ver el contenido del carrito
@@ -71,12 +77,12 @@ if st.sidebar.button("Ver carrito"):
     else:
         st.sidebar.write("El carrito está vacío.")
 
-# 8. Desplegable para seleccionar un producto (por su título)
+# 7. Desplegable para seleccionar un producto (por su título exacto)
 titulos_unicos = df["titulo"].unique().tolist()
 producto_seleccionado = st.selectbox("Selecciona un producto", titulos_unicos)
 
-# 9. Filtrar DataFrame para mostrar solo el producto seleccionado (y sus variantes)
-df_filtrado = df[df["titulo"].str.contains(producto_seleccionado, case=False, na=False)]
+# 8. Filtrar DataFrame para mostrar solo el producto seleccionado (match exacto)
+df_filtrado = df[df["titulo"] == producto_seleccionado]
 
 if df_filtrado.empty:
     st.info("No se encontraron productos con ese criterio.")
@@ -93,9 +99,10 @@ else:
             st.image(row["imagen"], width=100)
         with col2:
             st.markdown(f"**{row['titulo']}**")
+            st.markdown(f"Empresa: {row['empresa']}")  # Muestra la empresa extraída
             st.markdown(f"Categoría: {row['categoria']}")
             st.markdown(f"Precio: ${row['precio']:.2f}")
-            # Solo mostrar link si existe en el DataFrame
+            # Enlace del producto (si existe)
             if "link" in row and pd.notna(row["link"]):
                 st.markdown(f"[Ver producto]({row['link']})")
             
@@ -103,11 +110,11 @@ else:
             if st.button("Añadir al carrito", key=f"cart_{index}"):
                 st.session_state.cart.append({
                     "titulo": row["titulo"],
+                    "empresa": row["empresa"],
                     "precio": row["precio"],
                     "categoria": row["categoria"],
-                    "link": row["link"] if "link" in row else "",
+                    "link": row.get("link", ""),
                     "imagen": row["imagen"]
                 })
                 st.success("Producto añadido al carrito")
 
-  
