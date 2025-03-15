@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import glob
 import os
+import re
 
 # Configurar la página
 st.set_page_config(page_title="Comparador de Precios", layout="wide")
@@ -21,16 +22,15 @@ dataframes = []
 for archivo in archivos_json:
     with open(archivo, "r", encoding="utf-8") as file:
         try:
-            data = json.load(file)
+            json_content = file.read()  # Leer el JSON original
+            json_cleaned = re.sub(r",\s*([\]}])", r"\1", json_content)  # Eliminar comas extra
+            data = json.loads(json_cleaned)  # Cargar JSON corregido
             df_temp = pd.DataFrame(data)
 
-            # ✅ Asegurar que la columna "supermercado" existe y no se pierde
-            if "supermercado" in df_temp.columns:
-                df_temp["supermercado"] = df_temp["supermercado"].fillna("Desconocido")
-            else:
-                df_temp["supermercado"] = "Desconocido"
+            # Asegurar que la columna "supermercado" no esté vacía
+            df_temp["supermercado"] = df_temp["supermercado"].fillna("Desconocido")
 
-            # ✅ Extraer correctamente el precio numérico
+            # Extraer correctamente el precio numérico
             def extraer_precio(precio):
                 if isinstance(precio, str):
                     precio = precio.split("€")[0]  # Quitar "€" y posibles unidades
@@ -43,7 +43,7 @@ for archivo in archivos_json:
 
             df_temp["precio"] = df_temp["precio"].apply(extraer_precio)
 
-            # ✅ Corregir imágenes no disponibles
+            # Corregir imágenes no disponibles
             df_temp["imagen"] = df_temp["imagen"].apply(
                 lambda x: x if x and "no disponible" not in x.lower() else "https://via.placeholder.com/100"
             )
@@ -53,18 +53,18 @@ for archivo in archivos_json:
         except json.JSONDecodeError:
             st.warning(f"⚠️ Error al leer el archivo {archivo}. Verifica su formato.")
 
-# ✅ Unir todos los datos sin filtrarlos
+# Unir los datos corregidos
 if dataframes:
     df = pd.concat(dataframes, ignore_index=True)
 else:
     st.error("❌ No se pudo cargar ningún archivo JSON válido.")
     st.stop()
 
-# ✅ Mostrar la cantidad de productos cargados antes de filtros
-st.write(f"📊 **Productos totales disponibles:** {df.shape[0]}")
-
 # ---- FILTROS ----
 st.markdown("### 🎯 Filtrar productos:")
+
+# Mostrar la cantidad de productos cargados antes de filtros
+st.write(f"📊 **Productos totales disponibles:** {df.shape[0]}")
 
 if "categoria_seleccionada" not in st.session_state:
     st.session_state.categoria_seleccionada = "Todas"
@@ -101,7 +101,7 @@ with col3:
 if st.session_state.palabra_clave:
     df = df[df["titulo"].str.contains(st.session_state.palabra_clave, case=False, na=False)]
 
-# ✅ Mostrar la cantidad de productos después de aplicar filtros
+# Mostrar la cantidad de productos después de aplicar filtros
 st.write(f"📊 **Productos después de filtros:** {df.shape[0]}")
 
 st.markdown("####")
