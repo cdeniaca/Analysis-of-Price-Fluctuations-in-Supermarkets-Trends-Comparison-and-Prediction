@@ -48,13 +48,23 @@ df["precio"] = pd.to_numeric(df["precio"], errors="coerce")
 df = df.dropna(subset=["precio"])
 
 # ---- FILTROS ----
-st.markdown("### 🎯 Filtrar productos por categoría:")
+st.markdown("### 🎯 Filtrar productos:")
+
+# Filtro por Categoría
 categorias_unicas = ["Todas"] + sorted(df["categoria"].dropna().unique().tolist())
-categoria_seleccionada = st.selectbox("Selecciona una categoría:", categorias_unicas)
+categoria_seleccionada = st.selectbox("📂 Selecciona una categoría:", categorias_unicas)
 
 # Filtrar por categoría si se selecciona una distinta de "Todas"
 if categoria_seleccionada != "Todas":
     df = df[df["categoria"] == categoria_seleccionada]
+
+# Filtro por Título (Producto)
+titulos_unicos = ["Todos"] + sorted(df["titulo"].dropna().unique().tolist())
+titulo_seleccionado = st.selectbox("🏷️ Selecciona un producto específico:", titulos_unicos)
+
+# Filtrar por producto si se selecciona uno distinto de "Todos"
+if titulo_seleccionado != "Todos":
+    df = df[df["titulo"] == titulo_seleccionado]
 
 # ---- SECCIÓN DEL CARRITO ----
 if "carrito" not in st.session_state:
@@ -64,13 +74,6 @@ if "carrito" not in st.session_state:
 def agregar_al_carrito(producto):
     st.session_state.carrito.append(producto)
     st.success(f"✅ {producto['titulo']} agregado al carrito.")
-
-# Buscar productos por palabra clave
-st.markdown("### 🔎 Busca un producto por nombre:")
-palabra_clave = st.text_input("", "")
-
-if palabra_clave:
-    df = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
 
 if not df.empty:
     st.markdown("### 🏷️ Productos encontrados:")
