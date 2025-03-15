@@ -72,24 +72,24 @@ if palabra_clave:
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
             with cols[i % 4]:
                 with st.container():
-                    # Crear un recuadro con imagen, texto y botón dentro
+                    # Crear un recuadro más pequeño con imagen, texto y botón dentro
                     st.markdown(
                         f"""
                         <div style="
                             border: 2px solid #32C3FF;
                             border-radius: 12px;
-                            padding: 15px;
+                            padding: 10px;
                             text-align: center;
                             background-color: #D0F1FF;
-                            min-height: 580px;
+                            min-height: 450px;
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
                             align-items: center;
                         ">
-                            <img src="{row['imagen']}" width="140" style="border-radius: 8px; max-width: 100%; margin-top: 10px;">
-                            <h3 style="font-size: 16px; color: black; margin: 10px 0;">{row['titulo']}</h3>
-                            <p style="color: black; font-size: 14px; text-align: center;">
+                            <img src="{row['imagen']}" width="120" style="border-radius: 8px; max-width: 100%; margin-top: 5px;">
+                            <h3 style="font-size: 14px; color: black; margin: 5px 0;">{row['titulo']}</h3>
+                            <p style="color: black; font-size: 12px; text-align: center;">
                                 🏪 <b>Supermercado:</b> {row['supermercado']}<br>
                                 📂 <b>Categoría:</b> {row['categoria']}<br>
                                 💰 <b>Precio:</b> {row['precio']:.2f}€
@@ -129,7 +129,7 @@ else:
         for i, (_, row) in enumerate(carrito_super.iterrows()):
             with cols[i % 4]:
                 with st.container():
-                    st.image(row["imagen"], caption=row["titulo"], width=140)
+                    st.image(row["imagen"], caption=row["titulo"], width=120)
                     st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
 
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
