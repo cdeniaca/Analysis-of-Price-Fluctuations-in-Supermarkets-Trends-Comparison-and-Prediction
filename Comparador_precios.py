@@ -53,6 +53,9 @@ if not expected_columns.issubset(df.columns):
 placeholder_img = "https://via.placeholder.com/150"
 df["imagen"] = df["imagen"].fillna(placeholder_img)
 
+# Asegurar que la columna "supermercado" no esté vacía
+df["supermercado"] = df["supermercado"].fillna("Desconocido")
+
 # Función para extraer el precio
 def extraer_precio(precio):
     if isinstance(precio, str):
@@ -86,21 +89,23 @@ if palabra_clave:
     df_filtrado = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
     
     if not df_filtrado.empty:
-        # Mostrar productos con imágenes
         st.write("### 🏷️ Productos encontrados:")
+
         df_filtrado = df_filtrado.sort_values(by="precio")
-        
-        cols = st.columns(3)  # Crear 3 columnas por fila
+        cols = st.columns(3)  # Crear 3 columnas por fila para la cuadrícula
+
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
-            with cols[i % 3]:  # Asegurar estructura homogénea con `st.container()`
+            with cols[i % 3]:  # Asegurar estructura homogénea
                 with st.container():
                     st.image(row["imagen"], caption=row["titulo"], width=150)
-                    st.markdown(f"**{row['titulo']}**")  # Nombre del producto en negrita
-                    st.write(f"_{row['supermercado']}_")  # Supermercado en cursiva
-                    st.write(f"**Categoría:** {row['categoria']}")
-                    st.write(f"**Precio:** {row['precio']:.2f}€")
-                    
-                    # Botón con diseño uniforme
+
+                    # Hacer que los textos tengan el mismo tamaño y formato
+                    st.markdown(f"### {row['titulo']}", unsafe_allow_html=True)
+                    st.markdown(f"🏪 **Supermercado:** {row['supermercado']}", unsafe_allow_html=True)
+                    st.markdown(f"📂 **Categoría:** {row['categoria']}", unsafe_allow_html=True)
+                    st.markdown(f"💰 **Precio:** {row['precio']:.2f}€", unsafe_allow_html=True)
+
+                    # Botón uniforme para agregar al carrito
                     st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}", on_click=agregar_al_carrito, args=(row.to_dict(),))
     else:
         st.warning("⚠️ No se encontraron productos con esa palabra clave.")
@@ -114,7 +119,6 @@ st.header("🛍️ Tu Carrito de Compras")
 if not st.session_state.carrito:
     st.info("Tu carrito está vacío. Agrega productos para empezar.")
 else:
-    # Organizar los productos en el carrito por supermercado
     carrito_df = pd.DataFrame(st.session_state.carrito)
     total_compra = carrito_df["precio"].sum()
     
@@ -122,14 +126,14 @@ else:
     for supermercado in carrito_df["supermercado"].unique():
         st.subheader(f"🏪 {supermercado}")
         carrito_super = carrito_df[carrito_df["supermercado"] == supermercado]
-        cols = st.columns(3)  # Mostrar imágenes en 3 columnas
+        cols = st.columns(3)  # Mostrar en 3 columnas
 
         for i, (_, row) in enumerate(carrito_super.iterrows()):
             with cols[i % 3]:
                 with st.container():
                     st.image(row["imagen"], caption=row["titulo"], width=120)
-                    st.write(f"**Precio:** {row['precio']:.2f}€")
-    
+                    st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
+
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
     
     # Botón para imprimir la lista de compra
