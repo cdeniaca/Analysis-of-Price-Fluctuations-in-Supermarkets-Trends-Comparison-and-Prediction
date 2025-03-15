@@ -50,34 +50,60 @@ df = df.dropna(subset=["precio"])
 # ---- FILTROS ----
 st.markdown("### 🎯 Filtrar productos:")
 
+# Inicializar filtros en la sesión de Streamlit
+if "categoria_seleccionada" not in st.session_state:
+    st.session_state.categoria_seleccionada = "Todas"
+if "titulo_seleccionado" not in st.session_state:
+    st.session_state.titulo_seleccionado = "Todos"
+if "palabra_clave" not in st.session_state:
+    st.session_state.palabra_clave = ""
+
 # Filtros en columnas para mejor organización
 col1, col2, col3 = st.columns(3)
 
 # Filtro por Categoría
 with col1:
     categorias_unicas = ["Todas"] + sorted(df["categoria"].dropna().unique().tolist())
-    categoria_seleccionada = st.selectbox("📂 Selecciona una categoría:", categorias_unicas)
+    st.session_state.categoria_seleccionada = st.selectbox(
+        "📂 Selecciona una categoría:",
+        categorias_unicas,
+        index=categorias_unicas.index(st.session_state.categoria_seleccionada),
+    )
 
 # Filtrar por categoría si se selecciona una distinta de "Todas"
-if categoria_seleccionada != "Todas":
-    df = df[df["categoria"] == categoria_seleccionada]
+if st.session_state.categoria_seleccionada != "Todas":
+    df = df[df["categoria"] == st.session_state.categoria_seleccionada]
 
 # Filtro por Título (Producto)
 with col2:
     titulos_unicos = ["Todos"] + sorted(df["titulo"].dropna().unique().tolist())
-    titulo_seleccionado = st.selectbox("🏷️ Selecciona un producto específico:", titulos_unicos)
+    st.session_state.titulo_seleccionado = st.selectbox(
+        "🏷️ Selecciona un producto específico:",
+        titulos_unicos,
+        index=titulos_unicos.index(st.session_state.titulo_seleccionado),
+    )
 
 # Filtrar por producto si se selecciona uno distinto de "Todos"
-if titulo_seleccionado != "Todos":
-    df = df[df["titulo"] == titulo_seleccionado]
+if st.session_state.titulo_seleccionado != "Todos":
+    df = df[df["titulo"] == st.session_state.titulo_seleccionado]
 
 # Filtro de Búsqueda por Texto
 with col3:
-    palabra_clave = st.text_input("🔎 Escribe el nombre del producto:")
+    st.session_state.palabra_clave = st.text_input(
+        "🔎 Escribe el nombre del producto:", st.session_state.palabra_clave
+    )
 
 # Aplicar búsqueda por texto si hay algo escrito
-if palabra_clave:
-    df = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
+if st.session_state.palabra_clave:
+    df = df[df["titulo"].str.contains(st.session_state.palabra_clave, case=False, na=False)]
+
+# 🧹 Botón "Borrar Filtros"
+st.markdown("####")
+if st.button("🧹 Borrar Filtros"):
+    st.session_state.categoria_seleccionada = "Todas"
+    st.session_state.titulo_seleccionado = "Todos"
+    st.session_state.palabra_clave = ""
+    st.experimental_rerun()
 
 # ---- SECCIÓN DEL CARRITO ----
 if "carrito" not in st.session_state:
@@ -142,26 +168,7 @@ else:
     carrito_df = pd.DataFrame(st.session_state.carrito)
     total_compra = carrito_df["precio"].sum()
 
-    # Mostrar productos organizados por supermercado
-    for supermercado in carrito_df["supermercado"].unique():
-        st.subheader(f"🏪 {supermercado}")
-        carrito_super = carrito_df[carrito_df["supermercado"] == supermercado]
-        cols = st.columns(4)
-
-        for i, (_, row) in enumerate(carrito_super.iterrows()):
-            with cols[i % 4]:
-                with st.container():
-                    st.image(row["imagen"], caption=row["titulo"], width=100)
-                    st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
-
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
-    
-    # Botón para imprimir la lista de compra
-    if st.button("🖨️ Imprimir Lista de Compra"):
-        lista_compra = "\n".join(
-            [f"{row['titulo']} - {row['precio']:.2f}€ ({row['supermercado']})" for _, row in carrito_df.iterrows()]
-        )
-        st.text_area("📋 Copia tu lista de compra:", lista_compra, height=150)
 
     # Botón para vaciar el carrito
     if st.button("🗑️ Vaciar Carrito"):
