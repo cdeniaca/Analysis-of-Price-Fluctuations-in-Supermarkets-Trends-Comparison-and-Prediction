@@ -128,14 +128,19 @@ if palabra_clave:
                                     background-color: #32C3FF;
                                     color: white;
                                     border: none;
-                                    padding: 10px 15px;
+                                    padding: 15px 20px;
                                     text-align: center;
-                                    border-radius: 5px;
+                                    border-radius: 10px;
                                     cursor: pointer;
-                                    width: 90%;
-                                    font-size: 14px;
-                                    margin-top: 10px;
-                                " onclick="window.location.reload();">
+                                    width: 100%;
+                                    font-size: 16px;
+                                    font-weight: bold;
+                                    margin-top: 15px;
+                                    transition: all 0.3s ease;
+                                " 
+                                onmouseover="this.style.backgroundColor='#28A3DD'"
+                                onmouseout="this.style.backgroundColor='#32C3FF'"
+                                onclick="window.location.reload();">
                                     🛒 Agregar al Carrito
                                 </button>
                             </form>
