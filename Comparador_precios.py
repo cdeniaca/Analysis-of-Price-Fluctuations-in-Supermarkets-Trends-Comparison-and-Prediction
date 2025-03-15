@@ -101,16 +101,40 @@ if palabra_clave:
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
             with cols[i % 4]:  # Asegurar estructura homogénea en 4 columnas
                 with st.container():
-                    st.image(row["imagen"], caption=row["titulo"], width=180)
+                    # Crear un rectángulo uniforme
+                    st.markdown(
+                        """
+                        <div style="
+                            border: 1px solid #444;
+                            border-radius: 12px;
+                            padding: 15px;
+                            text-align: center;
+                            background-color: #222;
+                            min-height: 380px;">
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
-                    # Asegurar alineación de textos
+                    # Imagen
+                    st.image(row["imagen"], width=180)
+
+                    # Nombre del producto
                     st.markdown(f"### {row['titulo']}", unsafe_allow_html=True)
+
+                    # Supermercado
                     st.markdown(f"🏪 **Supermercado:** {row['supermercado']}", unsafe_allow_html=True)
+
+                    # Categoría
                     st.markdown(f"📂 **Categoría:** {row['categoria']}", unsafe_allow_html=True)
+
+                    # Precio
                     st.markdown(f"💰 **Precio:** {row['precio']:.2f}€", unsafe_allow_html=True)
 
-                    # Botón uniforme para agregar al carrito
+                    # Botón de agregar al carrito
                     st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}", on_click=agregar_al_carrito, args=(row.to_dict(),))
+
+                    # Cerrar div
+                    st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.warning("⚠️ No se encontraron productos con esa palabra clave.")
 else:
