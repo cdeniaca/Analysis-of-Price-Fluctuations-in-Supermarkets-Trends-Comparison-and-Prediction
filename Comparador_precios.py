@@ -86,21 +86,21 @@ if palabra_clave:
     df_filtrado = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
     
     if not df_filtrado.empty:
-        # Mostrar productos en tabla si hay más de 10 resultados
-        if len(df_filtrado) > 10:
-            st.dataframe(df_filtrado[["titulo", "supermercado", "categoria", "precio"]].sort_values(by="precio"))
-        else:
-            # Mostrar productos con imágenes si hay pocos resultados
-            df_filtrado = df_filtrado.sort_values(by="precio")
-            cols = st.columns(3)
-            for i, (_, row) in enumerate(df_filtrado.iterrows()):
-                with cols[i % 3]:
-                    st.image(row["imagen"], caption=row["titulo"], width=150)
-                    st.write(f"**Categoría:** {row['categoria']}")
-                    st.write(f"**Supermercado:** {row['supermercado']}")
-                    st.write(f"**Precio:** {row['precio']:.2f}€")
-                    if st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}"):
-                        agregar_al_carrito(row.to_dict())
+        # Mostrar productos con imágenes
+        st.write("### 🏷️ Productos encontrados:")
+        df_filtrado = df_filtrado.sort_values(by="precio")
+        
+        cols = st.columns(3)  # Crear 3 columnas por fila
+        for i, (_, row) in enumerate(df_filtrado.iterrows()):
+            with cols[i % 3]:
+                st.image(row["imagen"], caption=row["titulo"], width=150)
+                st.write(f"**Categoría:** {row['categoria']}")
+                st.write(f"**Supermercado:** {row['supermercado']}")
+                st.write(f"**Precio:** {row['precio']:.2f}€")
+                if st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}"):
+                    agregar_al_carrito(row.to_dict())
+    else:
+        st.warning("⚠️ No se encontraron productos con esa palabra clave.")
 else:
     st.info("💡 Escribe una palabra clave para buscar productos.")
 
@@ -119,8 +119,12 @@ else:
     for supermercado in carrito_df["supermercado"].unique():
         st.subheader(f"🏪 {supermercado}")
         carrito_super = carrito_df[carrito_df["supermercado"] == supermercado]
-        for _, row in carrito_super.iterrows():
-            st.write(f"🛒 **{row['titulo']}** - {row['precio']:.2f}€")
+        cols = st.columns(3)  # Mostrar imágenes en 3 columnas
+
+        for i, (_, row) in enumerate(carrito_super.iterrows()):
+            with cols[i % 3]:
+                st.image(row["imagen"], caption=row["titulo"], width=120)
+                st.write(f"**Precio:** {row['precio']:.2f}€")
     
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
     
