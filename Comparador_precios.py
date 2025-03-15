@@ -101,7 +101,7 @@ if palabra_clave:
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
             with cols[i % 4]:  # Asegurar estructura homogénea en 4 columnas
                 with st.container():
-                    # Crear un rectángulo uniforme con fondo personalizado y la imagen dentro
+                    # Crear un rectángulo uniforme con fondo personalizado y botón dentro
                     st.markdown(
                         f"""
                         <div style="
@@ -123,16 +123,26 @@ if palabra_clave:
                                 📂 <b>Categoría:</b> {row['categoria']}<br>
                                 💰 <b>Precio:</b> {row['precio']:.2f}€
                             </p>
+                            <form action="#" method="post">
+                                <button style="
+                                    background-color: #32C3FF;
+                                    color: white;
+                                    border: none;
+                                    padding: 10px 15px;
+                                    text-align: center;
+                                    border-radius: 5px;
+                                    cursor: pointer;
+                                    width: 90%;
+                                    font-size: 14px;
+                                    margin-top: 10px;
+                                " onclick="window.location.reload();">
+                                    🛒 Agregar al Carrito
+                                </button>
+                            </form>
+                        </div>
                         """,
                         unsafe_allow_html=True,
                     )
-
-                    # Botón funcional de Streamlit con color personalizado
-                    if st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}"):
-                        agregar_al_carrito(row.to_dict())
-
-                    # Cerrar div
-                    st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.warning("⚠️ No se encontraron productos con esa palabra clave.")
 else:
