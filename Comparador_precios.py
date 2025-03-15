@@ -47,8 +47,16 @@ df["supermercado"] = df["supermercado"].fillna("Desconocido")
 df["precio"] = pd.to_numeric(df["precio"], errors="coerce")
 df = df.dropna(subset=["precio"])
 
-# ---- SECCIÓN DEL CARRITO ----
+# ---- FILTROS ----
+st.markdown("### 🎯 Filtrar productos por categoría:")
+categorias_unicas = ["Todas"] + sorted(df["categoria"].dropna().unique().tolist())
+categoria_seleccionada = st.selectbox("Selecciona una categoría:", categorias_unicas)
 
+# Filtrar por categoría si se selecciona una distinta de "Todas"
+if categoria_seleccionada != "Todas":
+    df = df[df["categoria"] == categoria_seleccionada]
+
+# ---- SECCIÓN DEL CARRITO ----
 if "carrito" not in st.session_state:
     st.session_state.carrito = []
 
@@ -62,53 +70,51 @@ st.markdown("### 🔎 Busca un producto por nombre:")
 palabra_clave = st.text_input("", "")
 
 if palabra_clave:
-    df_filtrado = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
-    
-    if not df_filtrado.empty:
-        st.markdown("### 🏷️ Productos encontrados:")
-        df_filtrado = df_filtrado.sort_values(by="precio")
-        cols = st.columns(4)
+    df = df[df["titulo"].str.contains(palabra_clave, case=False, na=False)]
 
-        for i, (_, row) in enumerate(df_filtrado.iterrows()):
-            with cols[i % 4]:
-                with st.container():
-                    # Crear un recuadro aún más pequeño con imagen, texto y botón dentro
-                    st.markdown(
-                        f"""
-                        <div style="
-                            border: 2px solid #32C3FF;
-                            border-radius: 10px;
-                            padding: 8px;
-                            text-align: center;
-                            background-color: #D0F1FF;
-                            min-height: 380px;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: space-between;
-                            align-items: center;
-                        ">
-                            <img src="{row['imagen']}" width="100" style="border-radius: 6px; max-width: 100%; margin-top: 3px;">
-                            <h3 style="font-size: 12px; color: black; margin: 4px 0;">{row['titulo']}</h3>
-                            <p style="color: black; font-size: 11px; text-align: center;">
-                                🏪 <b>Supermercado:</b> {row['supermercado']}<br>
-                                📂 <b>Categoría:</b> {row['categoria']}<br>
-                                💰 <b>Precio:</b> {row['precio']:.2f}€
-                            </p>
-                            <div style="width: 100%; margin-top: auto;">
+if not df.empty:
+    st.markdown("### 🏷️ Productos encontrados:")
+    df = df.sort_values(by="precio")
+    cols = st.columns(4)
+
+    for i, (_, row) in enumerate(df.iterrows()):
+        with cols[i % 4]:
+            with st.container():
+                # Crear un recuadro con imagen, texto y botón dentro
+                st.markdown(
+                    f"""
+                    <div style="
+                        border: 2px solid #32C3FF;
+                        border-radius: 10px;
+                        padding: 8px;
+                        text-align: center;
+                        background-color: #D0F1FF;
+                        min-height: 380px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <img src="{row['imagen']}" width="100" style="border-radius: 6px; max-width: 100%; margin-top: 3px;">
+                        <h3 style="font-size: 12px; color: black; margin: 4px 0;">{row['titulo']}</h3>
+                        <p style="color: black; font-size: 11px; text-align: center;">
+                            🏪 <b>Supermercado:</b> {row['supermercado']}<br>
+                            📂 <b>Categoría:</b> {row['categoria']}<br>
+                            💰 <b>Precio:</b> {row['precio']:.2f}€
+                        </p>
+                        <div style="width: 100%; margin-top: auto;">
                     """,
-                        unsafe_allow_html=True,
-                    )
+                    unsafe_allow_html=True,
+                )
 
-                    # Botón dentro del recuadro
-                    if st.button(f"🛒 Agregar al Carrito", key=f"add_{i}"):
-                        agregar_al_carrito(row.to_dict())
+                # Botón dentro del recuadro
+                if st.button(f"🛒 Agregar al Carrito", key=f"add_{i}"):
+                    agregar_al_carrito(row.to_dict())
 
-                    # Cerrar div
-                    st.markdown("</div></div>", unsafe_allow_html=True)
-    else:
-        st.warning("⚠️ No se encontraron productos con esa palabra clave.")
+                # Cerrar div
+                st.markdown("</div></div>", unsafe_allow_html=True)
 else:
-    st.info("💡 Escribe una palabra clave para buscar productos.")
+    st.warning("⚠️ No se encontraron productos con los filtros seleccionados.")
 
 # ---- SECCIÓN DEL CARRITO ----
 
