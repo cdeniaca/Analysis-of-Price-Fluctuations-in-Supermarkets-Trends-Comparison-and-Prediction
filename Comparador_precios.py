@@ -7,13 +7,21 @@ import os
 # Configurar el título de la aplicación
 st.title('🛒 Comparador de Precios de Supermercados')
 
-# Buscar archivos JSON en la carpeta correcta
-folder_path = "C:/Users/crist/OneDrive/Escritorio/Proyecto final/"
-archivos_json = glob.glob(os.path.join(folder_path, "*merged.json"))
+# Verificar el directorio actual
+st.write(f"📂 Directorio de trabajo actual: `{os.getcwd()}`")
+
+# Listar archivos disponibles en el directorio actual
+archivos_disponibles = os.listdir("./")
+st.write("📂 Archivos en el repositorio:", archivos_disponibles)
+
+# Buscar archivos JSON en la carpeta del repositorio
+archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
 
 if not archivos_json:
-    st.error("No se encontraron archivos JSON con la fecha 2025-03-15. Verifica la ubicación de los archivos.")
+    st.error("❌ No se encontraron archivos JSON con la fecha 2025-03-15 en el repositorio.")
     st.stop()
+
+st.write(f"✅ Archivos encontrados: {archivos_json}")
 
 # Lista para almacenar los datos combinados
 dataframes = []
@@ -25,7 +33,7 @@ for archivo in archivos_json:
             data = json.load(file)
             df_temp = pd.DataFrame(data)
 
-            # Detectar columnas de precios según el supermercado
+            # Detectar columnas de precios
             if "precios" in df_temp.columns:
                 df_temp["precio"] = df_temp["precios"].apply(lambda x: x[0] if isinstance(x, list) and len(x) > 0 else x)
             elif "precio" in df_temp.columns:
@@ -34,15 +42,15 @@ for archivo in archivos_json:
                 st.warning(f"⚠️ El archivo {archivo} no contiene una columna de precios válida.")
                 continue
 
-            # Extraer el nombre del supermercado (antes del primer "_")
+            # Extraer el nombre del supermercado desde el archivo
             nombre_archivo = os.path.basename(archivo)
             supermercado_nombre = nombre_archivo.split("_")[0]
             df_temp["supermercado"] = supermercado_nombre
 
             dataframes.append(df_temp)
 
-    except (FileNotFoundError, json.JSONDecodeError):
-        st.error(f"⚠️ Error al leer el archivo {archivo}. Verifica que tenga un formato válido.")
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        st.error(f"⚠️ Error al leer el archivo {archivo}: {e}")
         st.stop()
 
 # Concatenar los datos en un solo DataFrame
@@ -56,7 +64,7 @@ if not expected_columns.issubset(df.columns):
 
 # Función para extraer el precio
 def extraer_precio(precio):
-    if isinstance(precio, str):  # Para casos donde el precio es un string con caracteres
+    if isinstance(precio, str):  # Para precios en formato texto con símbolos
         try:
             return float(precio.replace("€", "").replace(",", ".").split(" ")[0])
         except ValueError:
