@@ -114,8 +114,11 @@ if palabra_clave:
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
+                            align-items: center;
                         ">
-                            <img src="{row['imagen']}" width="160" style="margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: center;">
+                                <img src="{row['imagen']}" width="140" style="margin-bottom: 10px; border-radius: 8px;">
+                            </div>
                             <h3 style="font-size: 16px; color: white;">{row['titulo']}</h3>
                             <p style="color: #ccc; font-size: 14px;">
                                 🏪 <b>Supermercado:</b> {row['supermercado']}<br>
@@ -130,6 +133,7 @@ if palabra_clave:
                                 text-align: center;
                                 border-radius: 5px;
                                 cursor: pointer;
+                                width: 90%;
                             ">
                                 🛒 Agregar al Carrito
                             </button>
