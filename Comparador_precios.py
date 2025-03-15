@@ -12,7 +12,7 @@ st.set_page_config(page_title="Comparador de Precios", layout="wide")
 st.markdown("<h1 style='text-align: center;'> 🛒 Comparador de Precios de Supermercados </h1>", unsafe_allow_html=True)
 
 # ---- CARGA DE DATOS ----
-archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
+archivos_json = glob.glob("/mnt/data/*_merged.json")  # Ajustar la ruta al entorno actual
 
 if not archivos_json:
     st.error("❌ No se encontraron archivos JSON.")
@@ -121,21 +121,12 @@ if not df.empty:
 
     for i, (_, row) in enumerate(df.iterrows()):
         with cols[i % 4]:
-            st.markdown(
-                f"""
-                <div style="border: 2px solid #32C3FF; border-radius: 10px; padding: 10px;
-                            background-color: #D0F1FF; text-align: center;">
-                    <img src="{row['imagen']}" width="100"><br>
-                    <b>{row['titulo']}</b><br>
-                    🏪 {row['supermercado']} | 📂 {row['categoria']}<br>
-                    💰 <b>{row['precio']:.2f}€</b><br><br>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            st.image(row['imagen'], width=100)
+            st.write(f"**{row['titulo']}**")
+            st.write(f"🏪 {row['supermercado']} | 📂 {row['categoria']}")
+            st.write(f"💰 {row['precio']:.2f}€")
             if st.button(f"🛒 Agregar", key=f"add_{i}"):
                 agregar_al_carrito(row.to_dict())
-
 else:
     st.warning("⚠️ No se encontraron productos con los filtros seleccionados.")
 
@@ -147,9 +138,7 @@ if not st.session_state.carrito:
 else:
     total_compra = sum(p["precio"] for p in st.session_state.carrito)
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
-
     st.download_button("📥 Descargar Lista", data=json.dumps(st.session_state.carrito, indent=4), file_name="lista_compra.json", mime="application/json")
-
     if st.button("🛒 Vaciar Carrito"):
         st.session_state.carrito = []
         st.rerun()
