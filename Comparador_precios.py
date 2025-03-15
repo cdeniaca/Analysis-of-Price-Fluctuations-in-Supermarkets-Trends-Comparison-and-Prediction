@@ -45,7 +45,7 @@ for archivo in archivos_json:
 df = pd.concat(dataframes, ignore_index=True)
 
 # Verificar columnas esperadas
-expected_columns = {"titulo", "precio", "categoria", "imagen"}
+expected_columns = {"titulo", "precio", "categoria", "imagen", "supermercado"}
 if not expected_columns.issubset(df.columns):
     st.stop()
 
@@ -92,13 +92,16 @@ if palabra_clave:
         
         cols = st.columns(3)  # Crear 3 columnas por fila
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
-            with cols[i % 3]:
-                st.image(row["imagen"], caption=row["titulo"], width=150)
-                st.write(f"**Categoría:** {row['categoria']}")
-                st.write(f"**Supermercado:** {row['supermercado']}")
-                st.write(f"**Precio:** {row['precio']:.2f}€")
-                if st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}"):
-                    agregar_al_carrito(row.to_dict())
+            with cols[i % 3]:  # Asegurar estructura homogénea con `st.container()`
+                with st.container():
+                    st.image(row["imagen"], caption=row["titulo"], width=150)
+                    st.markdown(f"**{row['titulo']}**")  # Nombre del producto en negrita
+                    st.write(f"_{row['supermercado']}_")  # Supermercado en cursiva
+                    st.write(f"**Categoría:** {row['categoria']}")
+                    st.write(f"**Precio:** {row['precio']:.2f}€")
+                    
+                    # Botón con diseño uniforme
+                    st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}", on_click=agregar_al_carrito, args=(row.to_dict(),))
     else:
         st.warning("⚠️ No se encontraron productos con esa palabra clave.")
 else:
@@ -123,8 +126,9 @@ else:
 
         for i, (_, row) in enumerate(carrito_super.iterrows()):
             with cols[i % 3]:
-                st.image(row["imagen"], caption=row["titulo"], width=120)
-                st.write(f"**Precio:** {row['precio']:.2f}€")
+                with st.container():
+                    st.image(row["imagen"], caption=row["titulo"], width=120)
+                    st.write(f"**Precio:** {row['precio']:.2f}€")
     
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
     
