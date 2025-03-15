@@ -4,47 +4,31 @@ import json
 import glob
 import os
 
-# Configurar el diseño de la página para ocupar más espacio
+# Configurar la página para ocupar más espacio
 st.set_page_config(page_title="Comparador de Precios", layout="wide")
 
-# Configurar el título de la aplicación con emojis y estilo
+# Configurar el título de la aplicación
 st.markdown("<h1 style='text-align: center;'> 🛒 Comparador de Precios de Supermercados </h1>", unsafe_allow_html=True)
 
-# Buscar archivos JSON en la carpeta del repositorio
+# Buscar archivos JSON
 archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
 
 if not archivos_json:
-    st.error("❌ No se encontraron archivos JSON con la fecha 2025-03-15.")
+    st.error("❌ No se encontraron archivos JSON.")
     st.stop()
 
-# Lista para almacenar los datos combinados
+# Cargar los datos JSON en un DataFrame
 dataframes = []
-
-# Cargar y combinar los archivos JSON
 for archivo in archivos_json:
-    try:
-        with open(archivo, "r", encoding="utf-8") as file:
-            data = json.load(file)
-            df_temp = pd.DataFrame(data)
+    with open(archivo, "r", encoding="utf-8") as file:
+        data = json.load(file)
+        df_temp = pd.DataFrame(data)
 
-            # Detectar columnas de precios
-            if "precios" in df_temp.columns:
-                df_temp["precio"] = df_temp["precios"].apply(lambda x: x[0] if isinstance(x, list) and len(x) > 0 else x)
-            elif "precio" in df_temp.columns:
-                df_temp["precio"] = df_temp["precio"]
-            else:
-                continue  # Ignorar archivos sin precios
+        # Extraer el nombre del supermercado desde el archivo
+        supermercado_nombre = os.path.basename(archivo).split("_")[0]
+        df_temp["supermercado"] = supermercado_nombre
+        dataframes.append(df_temp)
 
-            # Extraer el nombre del supermercado desde el archivo
-            supermercado_nombre = os.path.basename(archivo).split("_")[0]
-            df_temp["supermercado"] = supermercado_nombre
-
-            dataframes.append(df_temp)
-
-    except (FileNotFoundError, json.JSONDecodeError):
-        st.stop()
-
-# Concatenar los datos en un solo DataFrame
 df = pd.concat(dataframes, ignore_index=True)
 
 # Verificar columnas esperadas
@@ -59,24 +43,12 @@ df["imagen"] = df["imagen"].fillna(placeholder_img)
 # Asegurar que la columna "supermercado" no esté vacía
 df["supermercado"] = df["supermercado"].fillna("Desconocido")
 
-# Función para extraer el precio
-def extraer_precio(precio):
-    if isinstance(precio, str):
-        try:
-            return float(precio.replace("€", "").replace(",", ".").split(" ")[0])
-        except ValueError:
-            return None
-    elif isinstance(precio, (int, float)):
-        return float(precio)
-    return None
-
-# Convertir precios a formato numérico y eliminar valores inválidos
-df["precio"] = df["precio"].apply(extraer_precio)
+# Convertir precios a numérico
+df["precio"] = pd.to_numeric(df["precio"], errors="coerce")
 df = df.dropna(subset=["precio"])
 
 # ---- SECCIÓN DEL CARRITO ----
 
-# Inicializar el carrito de compras en la sesión de Streamlit
 if "carrito" not in st.session_state:
     st.session_state.carrito = []
 
@@ -94,14 +66,13 @@ if palabra_clave:
     
     if not df_filtrado.empty:
         st.markdown("### 🏷️ Productos encontrados:")
-
         df_filtrado = df_filtrado.sort_values(by="precio")
-        cols = st.columns(4)  # Expandimos la cuadrícula a 4 columnas
+        cols = st.columns(4)
 
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
-            with cols[i % 4]:  # Asegurar estructura homogénea en 4 columnas
+            with cols[i % 4]:
                 with st.container():
-                    # Crear un rectángulo uniforme con fondo personalizado y botón dentro
+                    # Crear un rectángulo con fondo personalizado y botón dentro
                     st.markdown(
                         f"""
                         <div style="
@@ -110,44 +81,31 @@ if palabra_clave:
                             padding: 15px;
                             text-align: center;
                             background-color: #D0F1FF;
-                            min-height: 500px;
+                            min-height: 520px;
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
                             align-items: center;
                         ">
-                            <img src="{row['imagen']}" width="140" style="border-radius: 8px; max-width: 100%; margin-top: 10px;">
-                            <h3 style="font-size: 16px; color: black;">{row['titulo']}</h3>
-                            <p style="color: black; font-size: 14px;">
-                                🏪 <b>Supermercado:</b> {row['supermercado']}<br>
-                                📂 <b>Categoría:</b> {row['categoria']}<br>
-                                💰 <b>Precio:</b> {row['precio']:.2f}€
-                            </p>
-                            <form action="#" method="post">
-                                <button style="
-                                    background-color: #32C3FF;
-                                    color: white;
-                                    border: none;
-                                    padding: 15px 20px;
-                                    text-align: center;
-                                    border-radius: 10px;
-                                    cursor: pointer;
-                                    width: 100%;
-                                    font-size: 16px;
-                                    font-weight: bold;
-                                    margin-top: 15px;
-                                    transition: all 0.3s ease;
-                                " 
-                                onmouseover="this.style.backgroundColor='#28A3DD'"
-                                onmouseout="this.style.backgroundColor='#32C3FF'"
-                                onclick="window.location.reload();">
-                                    🛒 Agregar al Carrito
-                                </button>
-                            </form>
-                        </div>
                         """,
                         unsafe_allow_html=True,
                     )
+
+                    # Imagen del producto
+                    st.image(row["imagen"], width=140)
+
+                    # Información del producto
+                    st.markdown(f"### {row['titulo']}", unsafe_allow_html=True)
+                    st.markdown(f"🏪 **Supermercado:** {row['supermercado']}")
+                    st.markdown(f"📂 **Categoría:** {row['categoria']}")
+                    st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
+
+                    # Botón funcional de Streamlit dentro del recuadro
+                    if st.button(f"🛒 Agregar al Carrito", key=f"add_{i}"):
+                        agregar_al_carrito(row.to_dict())
+
+                    # Cerrar div
+                    st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.warning("⚠️ No se encontraron productos con esa palabra clave.")
 else:
@@ -162,12 +120,12 @@ if not st.session_state.carrito:
 else:
     carrito_df = pd.DataFrame(st.session_state.carrito)
     total_compra = carrito_df["precio"].sum()
-    
-    # Mostrar los productos organizados por supermercado
+
+    # Mostrar productos organizados por supermercado
     for supermercado in carrito_df["supermercado"].unique():
         st.subheader(f"🏪 {supermercado}")
         carrito_super = carrito_df[carrito_df["supermercado"] == supermercado]
-        cols = st.columns(4)  # Expandimos la cuadrícula a 4 columnas
+        cols = st.columns(4)
 
         for i, (_, row) in enumerate(carrito_super.iterrows()):
             with cols[i % 4]:
@@ -180,10 +138,7 @@ else:
     # Botón para imprimir la lista de compra
     if st.button("🖨️ Imprimir Lista de Compra"):
         lista_compra = "\n".join(
-            [
-                f"{row['titulo']} - {row['precio']:.2f}€ ({row['supermercado']})"
-                for _, row in carrito_df.iterrows()
-            ]
+            [f"{row['titulo']} - {row['precio']:.2f}€ ({row['supermercado']})" for _, row in carrito_df.iterrows()]
         )
         st.text_area("📋 Copia tu lista de compra:", lista_compra, height=200)
 
