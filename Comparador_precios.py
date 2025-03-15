@@ -4,27 +4,24 @@ import json
 import glob
 import os
 
-# Configurar la página para ocupar más espacio
+# Configurar la página
 st.set_page_config(page_title="Comparador de Precios", layout="wide")
 
-# Configurar el título de la aplicación
+# Título
 st.markdown("<h1 style='text-align: center;'> 🛒 Comparador de Precios de Supermercados </h1>", unsafe_allow_html=True)
 
-# Buscar archivos JSON
+# Cargar datos JSON
 archivos_json = glob.glob(os.path.join("./", "*_merged.json"))
 
 if not archivos_json:
     st.error("❌ No se encontraron archivos JSON.")
     st.stop()
 
-# Cargar los datos JSON en un DataFrame
 dataframes = []
 for archivo in archivos_json:
     with open(archivo, "r", encoding="utf-8") as file:
         data = json.load(file)
         df_temp = pd.DataFrame(data)
-
-        # Extraer el nombre del supermercado desde el archivo
         supermercado_nombre = os.path.basename(archivo).split("_")[0]
         df_temp["supermercado"] = supermercado_nombre
         dataframes.append(df_temp)
@@ -36,21 +33,15 @@ expected_columns = {"titulo", "precio", "categoria", "imagen", "supermercado"}
 if not expected_columns.issubset(df.columns):
     st.stop()
 
-# Reemplazar valores vacíos en la columna "imagen"
-placeholder_img = "https://via.placeholder.com/100"
-df["imagen"] = df["imagen"].fillna(placeholder_img)
-
-# Asegurar que la columna "supermercado" no esté vacía
+df["imagen"] = df["imagen"].fillna("https://via.placeholder.com/100")
 df["supermercado"] = df["supermercado"].fillna("Desconocido")
-
-# Convertir precios a numérico
 df["precio"] = pd.to_numeric(df["precio"], errors="coerce")
 df = df.dropna(subset=["precio"])
 
 # ---- FILTROS ----
 st.markdown("### 🎯 Filtrar productos:")
 
-# Inicializar filtros en la sesión de Streamlit
+# Inicializar filtros en la sesión
 if "categoria_seleccionada" not in st.session_state:
     st.session_state.categoria_seleccionada = "Todas"
 if "titulo_seleccionado" not in st.session_state:
@@ -58,58 +49,50 @@ if "titulo_seleccionado" not in st.session_state:
 if "palabra_clave" not in st.session_state:
     st.session_state.palabra_clave = ""
 
-# Filtros en columnas para mejor organización
+# Filtros en columnas
 col1, col2, col3 = st.columns(3)
 
 # Filtro por Categoría
 with col1:
     categorias_unicas = ["Todas"] + sorted(df["categoria"].dropna().unique().tolist())
     st.session_state.categoria_seleccionada = st.selectbox(
-        "📂 Selecciona una categoría:",
-        categorias_unicas,
+        "📂 Selecciona una categoría:", categorias_unicas, 
         index=categorias_unicas.index(st.session_state.categoria_seleccionada),
     )
 
-# Filtrar por categoría si se selecciona una distinta de "Todas"
 if st.session_state.categoria_seleccionada != "Todas":
     df = df[df["categoria"] == st.session_state.categoria_seleccionada]
 
-# Filtro por Título (Producto)
+# Filtro por Producto (Título)
 with col2:
     titulos_unicos = ["Todos"] + sorted(df["titulo"].dropna().unique().tolist())
     st.session_state.titulo_seleccionado = st.selectbox(
-        "🏷️ Selecciona un producto específico:",
-        titulos_unicos,
+        "🏷️ Selecciona un producto:", titulos_unicos, 
         index=titulos_unicos.index(st.session_state.titulo_seleccionado),
     )
 
-# Filtrar por producto si se selecciona uno distinto de "Todos"
 if st.session_state.titulo_seleccionado != "Todos":
     df = df[df["titulo"] == st.session_state.titulo_seleccionado]
 
-# Filtro de Búsqueda por Texto
+# Filtro por Texto
 with col3:
-    st.session_state.palabra_clave = st.text_input(
-        "🔎 Escribe el nombre del producto:", st.session_state.palabra_clave
-    )
+    st.session_state.palabra_clave = st.text_input("🔎 Escribe el nombre:", st.session_state.palabra_clave)
 
-# Aplicar búsqueda por texto si hay algo escrito
 if st.session_state.palabra_clave:
     df = df[df["titulo"].str.contains(st.session_state.palabra_clave, case=False, na=False)]
 
-# 🧹 Botón "Borrar Filtros"
+# Botón "Borrar Filtros"
 st.markdown("####")
 if st.button("🧹 Borrar Filtros"):
     st.session_state.categoria_seleccionada = "Todas"
     st.session_state.titulo_seleccionado = "Todos"
     st.session_state.palabra_clave = ""
-    st.experimental_rerun()
+    st.rerun()  # 🔄 Corregido: Usar st.rerun() en lugar de st.experimental_rerun()
 
 # ---- SECCIÓN DEL CARRITO ----
 if "carrito" not in st.session_state:
     st.session_state.carrito = []
 
-# Función para agregar productos al carrito
 def agregar_al_carrito(producto):
     st.session_state.carrito.append(producto)
     st.success(f"✅ {producto['titulo']} agregado al carrito.")
@@ -122,7 +105,6 @@ if not df.empty:
     for i, (_, row) in enumerate(df.iterrows()):
         with cols[i % 4]:
             with st.container():
-                # Crear un recuadro con imagen, texto y botón dentro
                 st.markdown(
                     f"""
                     <div style="
@@ -149,17 +131,14 @@ if not df.empty:
                     unsafe_allow_html=True,
                 )
 
-                # Botón dentro del recuadro
                 if st.button(f"🛒 Agregar al Carrito", key=f"add_{i}"):
                     agregar_al_carrito(row.to_dict())
 
-                # Cerrar div
                 st.markdown("</div></div>", unsafe_allow_html=True)
 else:
     st.warning("⚠️ No se encontraron productos con los filtros seleccionados.")
 
 # ---- SECCIÓN DEL CARRITO ----
-
 st.header("🛍️ Tu Carrito de Compras")
 
 if not st.session_state.carrito:
@@ -170,7 +149,6 @@ else:
 
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
 
-    # Botón para vaciar el carrito
     if st.button("🗑️ Vaciar Carrito"):
         st.session_state.carrito = []
-        st.experimental_rerun()
+        st.rerun()
