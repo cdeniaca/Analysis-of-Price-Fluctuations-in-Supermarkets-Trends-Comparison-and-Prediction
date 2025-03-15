@@ -22,19 +22,23 @@ for archivo in archivos_json:
     with open(archivo, "r", encoding="utf-8") as file:
         data = json.load(file)
         df_temp = pd.DataFrame(data)
-        supermercado_nombre = os.path.basename(archivo).split("_")[0]
-        df_temp["supermercado"] = supermercado_nombre
+
+        # 🔹 Verificar si la columna "supermercado" existe en el JSON
+        if "supermercado" in df_temp.columns:
+            df_temp["supermercado"] = df_temp["supermercado"].fillna("Desconocido")  # Rellenar vacíos si hay
+        else:
+            df_temp["supermercado"] = "Desconocido"  # Asignar por defecto si falta la columna
+
         dataframes.append(df_temp)
 
+# Unir todos los archivos en un solo DataFrame
 df = pd.concat(dataframes, ignore_index=True)
 
-# Verificar columnas esperadas
-expected_columns = {"titulo", "precio", "categoria", "imagen", "supermercado"}
-if not expected_columns.issubset(df.columns):
-    st.stop()
+# 🔹 Verificar si la columna tiene valores vacíos
+if df["supermercado"].isnull().sum() > 0 or df["supermercado"].eq("").sum() > 0:
+    st.warning("⚠️ Hay productos sin un supermercado asignado. Verifica los archivos JSON.")
 
 df["imagen"] = df["imagen"].fillna("https://via.placeholder.com/100")
-df["supermercado"] = df["supermercado"].fillna("Desconocido")
 df["precio"] = pd.to_numeric(df["precio"], errors="coerce")
 df = df.dropna(subset=["precio"])
 
@@ -143,7 +147,6 @@ else:
 
     st.write(f"💰 **Total de la compra:** {total_compra:.2f}€")
 
-    # 📜 Generación de lista de compra en formato TXT
     lista_compra_txt = "🛒 **Lista de Compra**\n\n"
 
     for supermercado in carrito_df["supermercado"].unique():
@@ -155,21 +158,12 @@ else:
             lista_compra_txt += f"  📂 {categoria}\n"
             lista_compra_txt += "  " + "-" * len(categoria) + "\n"
 
-            productos_cat = productos_super[productos_super["categoria"] == categoria]
-            for _, row in productos_cat.iterrows():
+            for _, row in productos_super[productos_super["categoria"] == categoria].iterrows():
                 lista_compra_txt += f"    [ ] {row['titulo']} - {row['precio']:.2f}€\n"
 
-        lista_compra_txt += "\n"
-
     st.text_area("📜 Copia esta lista:", lista_compra_txt, height=300)
-
-    st.download_button(
-        label="📥 Descargar Lista de Compra (TXT)",
-        data=lista_compra_txt,
-        file_name="lista_compra.txt",
-        mime="text/plain"
-    )
-
+    st.download_button("📥 Descargar TXT", data=lista_compra_txt, file_name="lista_compra.txt", mime="text/plain")
+    
     if st.button("🛒 Vaciar Todo el Carrito"):
         st.session_state.carrito = []
         st.rerun()
