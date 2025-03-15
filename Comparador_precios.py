@@ -10,7 +10,7 @@ st.title('🛒 Comparador de Precios de Supermercados')
 # Buscar todos los archivos JSON que terminen con "merged.json"
 json_files = glob.glob("*merged.json")
 if not json_files:
-    st.error("No se encontraron archivos JSON que terminen en 'merged.json' en la carpeta actual.")
+    st.error("No se encontraron archivos JSON que terminen en '.json' en la carpeta actual.")
     st.stop()
 
 # Leer y combinar los archivos JSON
