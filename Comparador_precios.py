@@ -101,46 +101,42 @@ if palabra_clave:
         for i, (_, row) in enumerate(df_filtrado.iterrows()):
             with cols[i % 4]:  # Asegurar estructura homogénea en 4 columnas
                 with st.container():
-                    # Crear un rectángulo uniforme con todos los elementos dentro
+                    # Crear un rectángulo uniforme con fondo personalizado
                     st.markdown(
                         f"""
                         <div style="
-                            border: 2px solid #444;
+                            border: 2px solid #32C3FF;
                             border-radius: 12px;
                             padding: 15px;
                             text-align: center;
-                            background-color: #222;
+                            background-color: #D0F1FF;
                             min-height: 450px;
                             display: flex;
                             flex-direction: column;
                             justify-content: space-between;
                             align-items: center;
                         ">
-                            <div style="display: flex; justify-content: center;">
-                                <img src="{row['imagen']}" width="140" style="margin-bottom: 10px; border-radius: 8px;">
-                            </div>
-                            <h3 style="font-size: 16px; color: white;">{row['titulo']}</h3>
-                            <p style="color: #ccc; font-size: 14px;">
-                                🏪 <b>Supermercado:</b> {row['supermercado']}<br>
-                                📂 <b>Categoría:</b> {row['categoria']}<br>
-                                💰 <b>Precio:</b> {row['precio']:.2f}€
-                            </p>
-                            <button style="
-                                background-color: #4CAF50;
-                                color: white;
-                                border: none;
-                                padding: 10px 15px;
-                                text-align: center;
-                                border-radius: 5px;
-                                cursor: pointer;
-                                width: 90%;
-                            ">
-                                🛒 Agregar al Carrito
-                            </button>
-                        </div>
                         """,
                         unsafe_allow_html=True,
                     )
+
+                    # Imagen centrada arriba
+                    st.image(row["imagen"], width=140)
+
+                    # Nombre del producto
+                    st.markdown(f"### {row['titulo']}", unsafe_allow_html=True)
+
+                    # Información del producto
+                    st.markdown(f"🏪 **Supermercado:** {row['supermercado']}")
+                    st.markdown(f"📂 **Categoría:** {row['categoria']}")
+                    st.markdown(f"💰 **Precio:** {row['precio']:.2f}€")
+
+                    # Botón funcional de Streamlit con color personalizado
+                    if st.button(f"🛒 Agregar {row['titulo']}", key=f"add_{i}"):
+                        agregar_al_carrito(row.to_dict())
+
+                    # Cerrar div
+                    st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.warning("⚠️ No se encontraron productos con esa palabra clave.")
 else:
